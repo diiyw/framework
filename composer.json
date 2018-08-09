@@ -1,0 +1,19 @@
+{
+    "name": "thinker",
+    "version": "0.0.1",
+    "description": "A Lightweight framework",
+    "keywords": ["thinker", "framework"],
+    "homepage": "http://github.com/diiyw/thinker",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Cheuk",
+            "email": "zhuohong@live.com",
+            "homepage": "https://my.oschina.net/pokdars"
+        }
+    ],
+    "require": {
+        "php": ">=7.0.0"
+    },
+}
