@@ -151,7 +151,7 @@ class Request
             }
             // 路由重写
             $route = $this->module . "\\Route";
-            $this->pathInfo = (new $route)->rewrite($uri);
+            $this->pathInfo = (new $route)->rewrite($uri, $this);
             return explode("/", trim($this->pathInfo, "/"));
         }
 

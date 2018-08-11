@@ -6,7 +6,7 @@ class Router
 {
     protected $rules;
 
-    public function rewrite($pathInfo)
+    public function rewrite($pathInfo, Request $request)
     {
         foreach ($this->rules as $pattern => $url) {
             $pattern = str_replace('(num)', '(\d*)', $pattern);
