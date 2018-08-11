@@ -61,6 +61,18 @@ class Request
         $requestTime,
 
         /**
+         * ROOT目录
+         * @var string
+         */
+        $root,
+
+        /**
+         * 站点目录
+         * @var string
+         */
+        $www,
+
+        /**
          * 表单数据
          * @var Form
          */
@@ -78,6 +90,8 @@ class Request
         }
         $this->form = new Form();
         $this->requestTime = $_SERVER["REQUEST_TIME"];
+        $this->root = dirname($_SERVER["DOCUMENT_ROOT"]);
+        $this->www = $_SERVER["DOCUMENT_ROOT"];
     }
 
     /**

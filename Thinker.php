@@ -10,11 +10,15 @@ class Thinker
 
         $request = new Request();
 
+        $plugin = new Plugin($request);
+
         $controller = $request->module . "\\" . ucfirst($request->controller);
 
         $framer = new $controller;
 
         $framer->register("request", $request);
+
+        $framer->register("plugin", $plugin);
 
         $framer->register("form", $request->form);
 

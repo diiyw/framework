@@ -28,6 +28,11 @@ class Framer
     protected $view;
 
     /**
+     * @var Plugin
+     */
+    protected $plugin;
+
+    /**
      * 注册对象
      * @param $name
      * @param $obj

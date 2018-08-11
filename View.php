@@ -25,9 +25,8 @@ class View
     public function __construct(Request $request)
     {
         $this->request = $request;
-        $root = dirname(dirname(dirname(dirname(__DIR__))));
-        $this->cache = $root . "/www/cache";
-        $this->path = $root . "/views";
+        $this->cache = $request->www . "/cache";
+        $this->path = $request->root . "/views";
         //注册模板标签
         $this->tags = [
             "@{if (.+?)}@" => function ($match) {
