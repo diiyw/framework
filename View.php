@@ -25,7 +25,7 @@ class View
     public function __construct(Request $request)
     {
         $this->request = $request;
-        $root = dirname(dirname(dirname(__DIR__)));
+        $root = dirname(dirname(dirname(dirname(__DIR__))));
         $this->cache = $root . "/www/cache";
         $this->path = $root . "/views";
         //注册模板标签
