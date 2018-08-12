@@ -10,14 +10,14 @@ class Plugin
     /**
      * ¼ÓÔØ²å¼þ
      * Plugin constructor.
-     * @param Request $request
+     * @param Framer $framer
      */
-    public function __construct(Request $request)
+    public function __construct(Framer $framer)
     {
-        $this->loadPlugins($request->root . "/app/plugins", $request);
+        $this->loadPlugins($framer->request->app . "/plugins", $framer);
     }
 
-    private function loadPlugins($folder, Request $request)
+    private function loadPlugins($folder, Framer $framer)
     {
         if (is_dir($folder)) {
             $handle = opendir($folder);
@@ -28,7 +28,7 @@ class Plugin
                     if ($pathInfo["extension"] == "php") {
                         include_once $file;
                         $this->plugins[] = $pathInfo["filename"];
-                        (new $pathInfo["filename"])->beforeDispatch($request);
+                        (new $pathInfo["filename"])->beforeDispatch($framer);
                     }
                 }
             }

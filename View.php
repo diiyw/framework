@@ -103,7 +103,7 @@ class View
      * @param       $tpl
      * @param array $vars
      */
-    public function display($tpl, array $vars)
+    public function display($tpl, array $vars = [])
     {
         $file = $this->path . DIRECTORY_SEPARATOR .
             $this->theme . DIRECTORY_SEPARATOR .

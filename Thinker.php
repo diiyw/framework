@@ -10,21 +10,23 @@ class Thinker
 
         $request = new Request();
 
-        $plugin = new Plugin($request);
-
         $controller = $request->module . "\\" . ucfirst($request->controller);
 
         $framer = new $controller;
 
         $framer->register("request", $request);
 
-        $framer->register("plugin", $plugin);
-
         $framer->register("form", $request->form);
 
         $framer->register("response", new Response());
 
         $framer->register("view", new View($request));
+
+        $framer->loadConfig("app");
+
+        $plugin = new Plugin($framer);
+
+        $framer->register("plugin", $plugin);
 
         $framer->{$request->action}();
     }

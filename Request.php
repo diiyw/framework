@@ -73,6 +73,12 @@ class Request
         $www,
 
         /**
+         * 应用目录
+         * @var string
+         */
+        $app,
+
+        /**
          * 表单数据
          * @var Form
          */
@@ -92,6 +98,7 @@ class Request
         $this->requestTime = $_SERVER["REQUEST_TIME"];
         $this->root = dirname($_SERVER["DOCUMENT_ROOT"]);
         $this->www = $_SERVER["DOCUMENT_ROOT"];
+        $this->app = $this->root . "/app";
     }
 
     /**

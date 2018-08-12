@@ -8,29 +8,35 @@ class Framer
      * Request
      * @var Request
      */
-    protected $request;
+    public $request;
 
     /**
      * Response
      * @var Response
      */
-    protected $response;
+    public $response;
 
     /**
      * 表单
      * @var Form
      */
-    protected $form;
+    public $form;
 
     /**
      * @var View
      */
-    protected $view;
+    public $view;
 
     /**
      * @var Plugin
      */
-    protected $plugin;
+    public $plugin;
+
+    /**
+     * 配置
+     * @var array
+     */
+    public $config;
 
     /**
      * 注册对象
@@ -39,6 +45,15 @@ class Framer
      */
     public function register($name, $obj)
     {
-        $this->{$name} = $obj;
+        $this->$name = $obj;
+    }
+
+    /**
+     * 加载配置
+     * @param $name
+     */
+    public function loadConfig($name)
+    {
+        $this->config[$name] = include_once $this->request->app . "/config/" . $name . ".php";
     }
 }
