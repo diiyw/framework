@@ -1,10 +1,10 @@
 {
     "name": "diiyw/thinker",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "description": "A Lightweight framework",
     "keywords": ["thinker", "framework"],
     "homepage": "http://github.com/diiyw/thinker",
-    "minimum-stability":"0.1.1",
+    "minimum-stability":"0.1.2",
     "type": "library",
     "license": "MIT",
     "authors": [
