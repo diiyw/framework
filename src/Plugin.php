@@ -5,19 +5,19 @@ namespace thinker;
 class Plugin
 {
 
-    public $plugins = [];
+    private $plugins = [];
 
     /**
      * ¼ÓÔØ²å¼þ
      * Plugin constructor.
      * @param Framer $framer
      */
-    public function __construct(Framer $framer)
+    public function __construct($pluginsPath)
     {
-        $this->loadPlugins($framer->request->app . "/plugins", $framer);
+        $this->loadPlugins($pluginsPath);
     }
 
-    private function loadPlugins($folder, Framer $framer)
+    private function loadPlugins($folder)
     {
         if (is_dir($folder)) {
             $handle = opendir($folder);
@@ -27,10 +27,19 @@ class Plugin
                     $pathInfo = pathinfo($file);
                     if ($pathInfo["extension"] == "php") {
                         include_once $file;
-                        $this->plugins[] = $pathInfo["filename"];
-                        (new $pathInfo["filename"])->beforeDispatch($framer);
+                        $this->plugins[] = "plugins\\" . $pathInfo["filename"];
                     }
                 }
+            }
+        }
+    }
+
+    public function beforeDispatch()
+    {
+        foreach ($this->plugins as $class) {
+            $plugin = (new $class);
+            if (method_exists($plugin, "beforeDispatch")) {
+                $plugin->beforeDispatch();
             }
         }
     }

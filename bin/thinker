@@ -1,0 +1,98 @@
+#!/usr/bin/env php
+<?php
+
+require __DIR__ . '/../src/Model.php';
+
+class App extends \thinker\Model
+{
+
+}
+
+$config = include_once __DIR__ . "/config.php";
+
+$conn = new \PDO($config['dsn'], $config['user'], $config['password'], [
+    \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8'
+]);
+
+$args = [];
+for (; ;) {
+    $value = array_shift($argv);
+    if ($value == null) {
+        break;
+    }
+    if ($value == "-c") {
+        $args[$value] = array_shift($argv);
+    } else {
+        $args[] = $value;
+    }
+}
+
+function convertUnderline($str)
+{
+    $str = preg_replace_callback('/([-_]+([a-z]{1}))/i', function ($matches) {
+        return strtoupper($matches[2]);
+    }, $str);
+    return $str;
+}
+
+if (!empty($args["-c"])) {
+    $config = include_once $args["-c"];
+}
+
+$app = new App($conn);
+
+if (empty($args[1])) {
+    die("Which database table would you need create model?");
+}
+
+$table = $args[1];
+
+$modelName = ucfirst($table);
+
+$result = $app->query("SHOW FULL COLUMNS FROM $table");
+
+$colunms = $result->fetchAll();
+
+$properties = "";
+$mapper = [];
+if (!empty($colunms)) {
+    foreach ($colunms as $k => $colunm) {
+        $comment = "
+    /**
+     * {$colunm["Comment"]}
+     * @var {$colunm["Type"]}
+     * @default {$colunm["Default"]}
+     */\n";
+        if ($colunm["Key"] == "PRI") {
+            $primaryKey = $colunm["Field"];
+        }
+        $field = convertUnderline(lcfirst($colunm["Field"]));
+        $properties .= $comment . "    public $" . $field . ";\n";
+        $mapper[] = "            \"{$colunm["Field"]}\" => \$this->$field,";
+    }
+}
+$mapper = join("\n", $mapper);
+$modelTPL = <<<MODEL
+<?php
+
+namespace $table;
+
+use thinker\Mapper;
+
+class $modelName extends Mapper
+{
+    public \$table = "$table";
+    
+    public \$primaryKey = "$primaryKey";
+    $properties
+    public function toArray()
+    {
+        return [
+$mapper
+        ];
+    }
+}
+
+MODEL;
+
+file_put_contents($modelName . ".php", $modelTPL);
