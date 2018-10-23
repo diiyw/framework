@@ -1,60 +1,43 @@
 #!/usr/bin/env php
 <?php
 
+// $argv[1] 连接名称
+// $argv[2] 表名称
+// $argv[3] 数据库配置文件
+
+// 加载文件
+require __DIR__ . "/../src/thinker/Registry.php";
 require __DIR__ . '/../src/thinker/Model.php';
 
+$config = include_once $argv[3];
+
+// 创建应用
 class App extends \thinker\Model
 {
+    public $name = "default";
 
-}
-
-$config = include_once __DIR__ . "/config.php";
-
-$conn = new \PDO($config['dsn'], $config['user'], $config['password'], [
-    \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8'
-]);
-
-$args = [];
-for (; ;) {
-    $value = array_shift($argv);
-    if ($value == null) {
-        break;
-    }
-    if ($value == "-c") {
-        $args[$value] = array_shift($argv);
-    } else {
-        $args[] = $value;
+    public function __construct()
+    {
+        $this->name = $argv[1];
+        parent::__construct();
     }
 }
 
-function convertUnderline($str)
-{
-    $str = preg_replace_callback('/([-_]+([a-z]{1}))/i', function ($matches) {
-        return strtoupper($matches[2]);
-    }, $str);
-    return $str;
-}
+// 创建模型
+$app = new App();
 
-if (!empty($args["-c"])) {
-    $config = include_once $args["-c"];
-}
+$table = $argv[2];
 
-$app = new App($conn);
-
-if (empty($args[1])) {
-    die("Which database table would you need create model?");
-}
-
-$table = $args[1];
-
-$modelName = ucfirst($table);
+$modelName = ucfirst($table) . "Model";
 
 $result = $app->query("SHOW FULL COLUMNS FROM $table");
 
 $colunms = $result->fetchAll();
 
 $properties = "";
-$mapper = [];
+
+$model = [];
+
 if (!empty($colunms)) {
     foreach ($colunms as $k => $colunm) {
         $comment = "
@@ -68,27 +51,26 @@ if (!empty($colunms)) {
         }
         $field = convertUnderline(lcfirst($colunm["Field"]));
         $properties .= $comment . "    public $" . $field . ";\n";
-        $mapper[] = "            \"{$colunm["Field"]}\" => \$this->$field,";
+        $model[] = "            \"{$colunm["Field"]}\" => \$this->$field,";
     }
 }
-$mapper = join("\n", $mapper);
+$model = join("\n", $model);
 $modelTPL = <<<MODEL
 <?php
 
 namespace $table;
 
-use thinker\Mapper;
+use thinker\Model;
 
-class $modelName extends Mapper
+class $modelName extends Model
 {
-    public \$table = "$table";
-    
-    public \$primaryKey = "$primaryKey";
     $properties
+    public \$primaryKey = "$primaryKey";
+    
     public function toArray()
     {
         return [
-$mapper
+$model
         ];
     }
 }
@@ -96,3 +78,12 @@ $mapper
 MODEL;
 
 file_put_contents($modelName . ".php", $modelTPL);
+
+// 下划线变量转驼峰命名
+function convertUnderline($str)
+{
+    $str = preg_replace_callback('/([-_]+([a-z]{1}))/i', function ($matches) {
+        return strtoupper($matches[2]);
+    }, $str);
+    return $str;
+}

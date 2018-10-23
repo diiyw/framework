@@ -1,48 +1,164 @@
 <?php
 
-namespace thinker;
+namespace thinker\model;
 
-use Mapper\Mapper;
-
-abstract class Model
+class Model
 {
+    private $_where = [];
+
+    private $_orderBy = [];
+
+    private $_groupBy = [];
+
+    private $_limit = 10;
+
+    private $_page = 0;
+
+    private $_binds = [];
+
+    private $_colunms = "";
+
     /**
      * 数据表
      * @var string
      */
-    public $table;
+    protected $_table;
 
     /**
      * PDO连接对象
      * @var \PDO
      */
-    public $conn;
+    protected $_conn;
 
     /**
-     * 主键名称
+     * 默认连接名称
      * @var string
      */
-    public $primaryKey;
+    protected $_name = "default";
 
     /**
-     * 数据表映射关系
-     * @var Mapper
+     * 新建模型
+     * @param $model
      */
-    private $mapper;
-
-    /**
-     * 模型初始化
-     * Model constructor.
-     * @param $conn
-     * @param $mapper
-     */
-    public function __construct($conn)
+    public function __construct($mapper = [])
     {
-        $this->conn = $conn;
-        if (method_exists($this, "initlize")) {
-            $this->initlize();
+        $objName = "CONN::" . $this->name;
+        $config = Registry::get("db")[$this->name];
+        if (!Registry::get($objName) instanceof \PDO) {
+            Registry::set($objName, new \PDO(
+                $config['dsn'], $config['user'], $config['password'],
+                [\PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8']
+            ));
         }
+        $this->conn = Registry::get($objName);
     }
+
+    /**
+     * 条件
+     * $where = [
+     *    "id"=> ["=",3],
+     * ]
+     * @param array $where
+     */
+    public function where(array $where)
+    {
+        if (empty($where)) {
+            return;
+        }
+        $this->where = array_merge($this->where, $where);
+        return $this;
+    }
+
+    /**
+     * 限制查询
+     * @param $start
+     * @param int $number
+     */
+    public function limit($limit)
+    {
+        $this->limit = $limit;
+        return $this;
+    }
+
+    /**
+     * 选择字段
+     * @param $start
+     * @param int $number
+     */
+    public function select($colunms = "*")
+    {
+        $this->colunms = $colunms;
+        return $this;
+    }
+
+    /**
+     * 分页
+     * @param $page
+     * @param int $number
+     */
+    public function page($page)
+    {
+        $this->page = $page;
+        return $this;
+    }
+
+    /**
+     * 分组
+     * @param $by
+     */
+    public function groupBy($by)
+    {
+        $this->groupBy = $by;
+        return $this;
+    }
+
+    /**
+     * 排序
+     * @param $by
+     */
+    public function orderBy(array $by)
+    {
+        if (empty($by)) {
+            return;
+        }
+        $this->orderBy = array_merge($this->orderBy, $by);
+        return $this;
+    }
+
+    private function buildSql()
+    {
+        $where = "";
+        foreach ($this->_where as $field => $item) {
+            $this->binds[] = $item[1];
+            $where .= " AND " . $field . $item[0] . "?";
+        }
+        if (!empty($where)) {
+            $where = " WHERE " . ltrim($where, "AND");
+        }
+        $orderBy = "";
+        foreach ($this->_orderBy as $item) {
+            $orderBy .= join(" ", $item) . ",";
+        }
+        if (!empty($orderBy)) {
+            $orderBy = " ORDER BY " . $orderBy;
+        }
+        $groupBy = "";
+        foreach ($this->_groupBy as $item) {
+            $groupBy .= join(",", $item);
+        }
+        if (!empty($groupBy)) {
+            $groupBy = " GROUP BY " . $orderBy;
+        }
+        $limit = "";
+        if (!empty($this->_limit)) {
+            $limit = intval($this->_limit);
+        }
+        if (!empty($this->_page)) {
+            $limit = intval($this->_page * $limit) . "," . intval($limit);
+        }
+        return $where . " " . $orderBy . " " . $groupBy . " LIMIT " . $limit;
+    }
+
 
     /**
      * 插入数据
@@ -50,14 +166,14 @@ abstract class Model
      */
     public function insert()
     {
-        if (empty($this->mapper)) {
+        $data = $this->toArray();
+        if (empty($data)) {
             return false;
         }
-        $data = $this->mapper->toArray();
         $fields = array_keys($data);
-        $bind = trim(join(",:", $fields), ",");
-        $sql = "INSERT INTO " . $this->table . "(" . join(",", $fields) . ")VALUES(" . $bind . ")";
-        $this->query($sql, $data);
+        $this->_binds = array_values($data);
+        $bind = join(",:", $fields);
+        $this->query("INSERT INTO " . $this->table . "(" . join(",", $fields) . ")VALUES(" . $bind . ")");
         return $this->conn->lastInsertId();
     }
 
@@ -68,31 +184,20 @@ abstract class Model
      */
     public function update()
     {
-        $mapper = $this->mapper->toArray();
-        if (empty($mapper) || empty($this->mapper->where)) {
+        $mapper = $this->toArray();
+        if (empty($mapper)) {
             return 0;
         }
         $sets = "";
+        $binds = [];
         foreach ($mapper as $field => $value) {
-            if ($field == $this->primaryKey) {
-                continue;
-            }
-            $sets .= "$field=:$field,";
-        }
-        $where = "";
-        $data = [];
-        if (!empty($this->mapper[$this->primaryKey])) {
-            $where = $this->primaryKey . "=" . $this->mapper[$this->primaryKey];
-            $data = $mapper;
-        } else {
-            foreach ($this->mapper->where as $condition => $value) {
-                $where .= " AND " . $condition;
-                $data[] = $value;
-            }
+            $binds[] = $value;
+            $sets .= $field . "=?,";
         }
         $sets = trim($sets, ",");
-        $sql = "UPDATE " . $this->table . " SET " . $sets . " WHERE " . $where;
-        $result = $this->query($sql, $data);
+        $sql = "UPDATE " . $this->table . " SET " . $sets . " WHERE " . $this->buildSql();
+        $this->_binds = array_merge($binds, $this->_binds);
+        $result = $this->query($sql);
         return $result->rowCount();
     }
 
@@ -102,21 +207,8 @@ abstract class Model
      */
     public function delete()
     {
-        $mapper = $this->mapper->where;
-        if (empty($mapper)) {
-            return 0;
-        }
-        $where = "";
-        $data = [];
-        foreach ($mapper as $field => $value) {
-            if ($value != "") {
-                $where .= "$field AND";
-                $data[] = $value;
-            }
-        }
-        $where = trim($where, "AND");
-        $sql = "DELETE FROM " . $this->table . " WHERE " . $where;
-        $result = $this->query($sql, $data);
+        $sql = "DELETE FROM " . $this->table . $this->buildSql();
+        $result = $this->query($sql);
         return $result->rowCount();
     }
 
@@ -127,33 +219,18 @@ abstract class Model
      * @return array|mixed
      * @throws \Exception
      */
-    public function select($colunms, $all = true)
+    public function get()
     {
-        $mapper = $this->mapper->where;
-        if (empty($mapper)) {
-            return [];
-        }
-        $where = "";
-        $data = [];
-        foreach ($this->mapper as $field => $value) {
-            if ($value != "") {
-                $where .= "$field=:$field AND";
-                $data[] = $value;
-            }
-        }
-        $where = trim($sets, "AND");
-        $sql = "SELECT " . $colunms . " FROM " . $this->table . " WHERE " . $where;
-        $result = $this->query($sql, $data);
-        return $all ? $result->fetchAll() : $result->fetch();
+        $sql = "SELECT " . $this->_colunms . " FROM " . $this->table . $this->buildSql();
+        $result = $this->query($sql);
+        return $result->fetchAll();
     }
 
-    /**
-     * 映射关系
-     * @param $mapper
-     */
-    public function map($mapper)
+    public function first()
     {
-        $this->mapper = $mapper;
+        $sql = "SELECT " . $this->_colunms . " FROM " . $this->table . $this->buildSql();
+        $result = $this->query($sql);
+        return $result->fetch();
     }
 
     /**
@@ -163,10 +240,10 @@ abstract class Model
      * @return \PDOStatement
      * @throws \Exception
      */
-    public function query($sql, $data = array())
+    public function query($sql)
     {
         $result = $this->conn->prepare($sql);
-        foreach ($data as $key => &$value) {
+        foreach ($this->_binds as $key => &$value) {
             if (trim($value) == "") {
                 continue;
             }
@@ -186,15 +263,33 @@ abstract class Model
      * @param callable $transaction
      * @return bool
      */
-    public function transaction(callable $transaction)
+    public function transaction(callable $tx)
     {
         $this->conn->beginTransaction();
-        $result = $transaction();
+        $result = $tx();
         if ($result) {
             $this->conn->commit();
             return $result;
         }
         $this->conn->rollBack();
         return false;
+    }
+
+    /**
+     * Pdo查询结果转换到对象操作
+     * @param $name
+     * @param $value
+     */
+    public function __set($name, $value)
+    {
+        $this->{convertUnderline($name)} = $value;
+    }
+
+    protected function convertUnderline($str)
+    {
+        $str = preg_replace_callback('/([-_]+([a-z]{1}))/i', function ($matches) {
+            return strtoupper($matches[2]);
+        }, $str);
+        return $str;
     }
 }

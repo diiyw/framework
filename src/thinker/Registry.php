@@ -46,6 +46,9 @@ class Registry
      */
     public static function get($name, $method = "")
     {
+        if (empty(self::$objects[$name])) {
+            return null;
+        }
         if (!empty($method)) {
             return self::$objects[$name]->$method();
         }
