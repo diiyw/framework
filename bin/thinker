@@ -1,61 +1,156 @@
 #!/usr/bin/env php
 <?php
 
-// $argv[1] 连接名称
-// $argv[2] 表名称
-// $argv[3] 数据库配置文件
-
-// 加载文件
-require __DIR__ . "/../src/thinker/Registry.php";
-require __DIR__ . '/../src/thinker/Model.php';
-
-$config = include_once $argv[3];
-
-// 创建应用
-class App extends \thinker\Model
+// 下划线变量转驼峰命名
+function convertUnderline($str)
 {
-    public $name = "default";
-
-    public function __construct()
-    {
-        $this->name = $argv[1];
-        parent::__construct();
-    }
+    $str = preg_replace_callback('/([-_]+([a-z]{1}))/i', function ($matches) {
+        return strtoupper($matches[2]);
+    }, $str);
+    return $str;
 }
 
-// 创建模型
-$app = new App();
+// $_ENV[1] = $argv[1] 连接名称
+// $_ENV[2] = $argv[2] 表名称
+// $_ENV[3] = $argv[3] 数据库配置文件
 
-$table = $argv[2];
+$_ENV = $argv;
+// 加载文件
+require_once __DIR__ . "/../src/thinker/Registry.php";
+require_once __DIR__ . '/../src/thinker/Model.php';
 
-$modelName = ucfirst($table) . "Model";
+$config = include_once $_ENV[3];
 
-$result = $app->query("SHOW FULL COLUMNS FROM $table");
+\thinker\Registry::set("dbConfig", $config);
 
-$colunms = $result->fetchAll();
+try {
 
-$properties = "";
+    // 初始化模块
+    if ($_ENV[1] == "module") {
+        $module = ucfirst($_ENV[2]);
+        // 创建目录
+        foreach (array("/rest", "/controller", "/config", "/admin") as $path) {
+            mkdir($_ENV[2] . $path, 0777, true);
+        }
+        // 创建文件
+        $files = [
+            "/Router.php" => <<<ROUTER
+<?php
 
-$model = [];
+namespace $_ENV[2];
 
-if (!empty($colunms)) {
-    foreach ($colunms as $k => $colunm) {
-        $comment = "
+class Router
+{
+    public function route()
+    {
+        return array(
+            
+        );
+    }
+}
+ROUTER,
+            "/rest/" . $module . ".php" => <<<REST
+<?php
+
+namespace $_ENV[2]\rest;
+
+use core\Rest;
+
+class $module extends Rest
+{
+
+    public function get()
+    {
+
+    }
+
+    public function post()
+    {
+
+    }
+
+    public function put()
+    {
+
+    }
+
+    public function delete()
+    {
+
+    }
+}
+REST,
+            "/controller/" . $module . ".php" => <<<CONTROLLER
+<?php
+
+namespace $_ENV[2]\controller;
+
+use core\Controller;
+
+class $module extends Controller
+{
+
+    public function index()
+    {
+        \$this->display("index");
+    }
+}
+CONTROLLER,
+            "/config/db.php" => <<<DB
+return [];
+DB,
+        ];
+        foreach ($files as $path => $content) {
+            file_put_contents($path, $content);
+        }
+        return;
+    }
+
+    // 创建应用
+    class App extends thinker\Model
+    {
+        public $name = "default";
+
+        public function __construct()
+        {
+            $this->name = $_ENV[1];
+            parent::__construct();
+        }
+    }
+
+    // 创建模型
+    $app = new App();
+
+    $table = $_ENV[2];
+
+    $modelName = ucfirst($table) . "Model";
+
+    $result = $app->query("SHOW FULL COLUMNS FROM $table");
+
+    $colunms = $result->fetchAll();
+
+    $properties = "";
+
+    $model = [];
+
+    if (!empty($colunms)) {
+        foreach ($colunms as $k => $colunm) {
+            $comment = "
     /**
      * {$colunm["Comment"]}
      * @var {$colunm["Type"]}
      * @default {$colunm["Default"]}
      */\n";
-        if ($colunm["Key"] == "PRI") {
-            $primaryKey = $colunm["Field"];
+            if ($colunm["Key"] == "PRI") {
+                $primaryKey = $colunm["Field"];
+            }
+            $field = convertUnderline(lcfirst($colunm["Field"]));
+            $properties .= $comment . "    public $" . $field . ";\n";
+            $model[] = "            \"{$colunm["Field"]}\" => \$this->$field,";
         }
-        $field = convertUnderline(lcfirst($colunm["Field"]));
-        $properties .= $comment . "    public $" . $field . ";\n";
-        $model[] = "            \"{$colunm["Field"]}\" => \$this->$field,";
     }
-}
-$model = join("\n", $model);
-$modelTPL = <<<MODEL
+    $model = join("\n", $model);
+    $modelTPL = <<<MODEL
 <?php
 
 namespace $table;
@@ -65,7 +160,7 @@ use thinker\Model;
 class $modelName extends Model
 {
     $properties
-    public \$primaryKey = "$primaryKey";
+    protected \$_primaryKey = "$primaryKey";
     
     public function toArray()
     {
@@ -77,13 +172,8 @@ $model
 
 MODEL;
 
-file_put_contents($modelName . ".php", $modelTPL);
+    file_put_contents($modelName . ".php", $modelTPL);
 
-// 下划线变量转驼峰命名
-function convertUnderline($str)
-{
-    $str = preg_replace_callback('/([-_]+([a-z]{1}))/i', function ($matches) {
-        return strtoupper($matches[2]);
-    }, $str);
-    return $str;
+} catch (\Exception $e) {
+    echo $e->getMessage();
 }

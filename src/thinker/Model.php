@@ -1,63 +1,89 @@
 <?php
 
-namespace thinker\model;
+namespace thinker;
 
 class Model
 {
-    private $_where = [];
-
-    private $_orderBy = [];
-
-    private $_groupBy = [];
-
-    private $_limit = 10;
-
-    private $_page = 0;
-
-    private $_binds = [];
-
-    private $_colunms = "";
 
     /**
-     * Êý¾Ý±í
+     * Where æ¡ä»¶
+     * @var array
+     */
+    private $_where = [];
+
+    /**
+     * æŽ’åºæ¡ä»¶
+     * @var array
+     */
+    private $_orderBy = [];
+
+    /**
+     * åˆ†ç»„æ¡ä»¶
+     * @var array
+     */
+    private $_groupBy = [];
+
+    /**
+     * é™åˆ¶æ¡ä»¶
+     * @var array
+     */
+    private $_limit = 1;
+
+    /**
+     * åˆ†é¡µ
+     * @var array
+     */
+    private $_page = 0;
+
+    /**
+     * æ•°æ®ç»‘å®š
+     * @var array
+     */
+    private $_binds = [];
+
+    /**
+     * æ•°æ®è¡¨
      * @var string
      */
     protected $_table;
 
     /**
-     * PDOÁ¬½Ó¶ÔÏó
+     * PDOè¿žæŽ¥å¯¹è±¡
      * @var \PDO
      */
     protected $_conn;
 
     /**
-     * Ä¬ÈÏÁ¬½ÓÃû³Æ
+     * é»˜è®¤è¿žæŽ¥åç§°
      * @var string
      */
     protected $_name = "default";
 
     /**
-     * ÐÂ½¨Ä£ÐÍ
+     * ä¸»é”®åç§°
+     * @var string
+     */
+    protected $_primaryKey;
+
+    /**
+     * æ–°å»ºæ¨¡åž‹
      * @param $model
      */
     public function __construct($mapper = [])
     {
         $objName = "CONN::" . $this->name;
-        $config = Registry::get("db")[$this->name];
+        $config = Registry::get("dbConfig")[$this->name];
         if (!Registry::get($objName) instanceof \PDO) {
             Registry::set($objName, new \PDO(
                 $config['dsn'], $config['user'], $config['password'],
                 [\PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8']
             ));
         }
-        $this->conn = Registry::get($objName);
+        $this->_conn = Registry::get($objName);
     }
 
     /**
-     * Ìõ¼þ
-     * $where = [
-     *    "id"=> ["=",3],
-     * ]
+     * æ¡ä»¶
      * @param array $where
      */
     public function where(array $where)
@@ -70,7 +96,23 @@ class Model
     }
 
     /**
-     * ÏÞÖÆ²éÑ¯
+     * æ ¹æ®ä¸»é”®æŸ¥è¯¢æœ€æ–°ä¸€æ¡è®°å½•
+     * @param array $where
+     */
+    public function last($primaryKey = "")
+    {
+        if (empty($primaryKey)) {
+            $this->first();
+            return;
+        }
+        $this->where([
+            $this->_primaryKey => ["=", $primaryKey]
+        ]);
+        return $this->select("*");
+    }
+
+    /**
+     * é™åˆ¶æŸ¥è¯¢
      * @param $start
      * @param int $number
      */
@@ -81,18 +123,7 @@ class Model
     }
 
     /**
-     * Ñ¡Ôñ×Ö¶Î
-     * @param $start
-     * @param int $number
-     */
-    public function select($colunms = "*")
-    {
-        $this->colunms = $colunms;
-        return $this;
-    }
-
-    /**
-     * ·ÖÒ³
+     * åˆ†é¡µ
      * @param $page
      * @param int $number
      */
@@ -103,7 +134,7 @@ class Model
     }
 
     /**
-     * ·Ö×é
+     * åˆ†ç»„
      * @param $by
      */
     public function groupBy($by)
@@ -113,7 +144,7 @@ class Model
     }
 
     /**
-     * ÅÅÐò
+     * æŽ’åº
      * @param $by
      */
     public function orderBy(array $by)
@@ -161,7 +192,7 @@ class Model
 
 
     /**
-     * ²åÈëÊý¾Ý
+     * æ’å…¥æ•°æ®
      * @return bool|integer
      */
     public function insert()
@@ -174,11 +205,11 @@ class Model
         $this->_binds = array_values($data);
         $bind = join(",:", $fields);
         $this->query("INSERT INTO " . $this->table . "(" . join(",", $fields) . ")VALUES(" . $bind . ")");
-        return $this->conn->lastInsertId();
+        return $this->_conn->lastInsertId();
     }
 
     /**
-     * ¸üÐÂÊý¾Ý
+     * æ›´æ–°æ•°æ®
      * @return int
      * @throws \Exception
      */
@@ -202,7 +233,7 @@ class Model
     }
 
     /**
-     * É¾³ýÊý¾Ý
+     * åˆ é™¤æ•°æ®
      * @return int
      */
     public function delete()
@@ -213,15 +244,15 @@ class Model
     }
 
     /**
-     * Êý¾Ý²éÑ¯
+     * æ•°æ®æŸ¥è¯¢
      * @param $colunms
      * @param bool $all
      * @return array|mixed
      * @throws \Exception
      */
-    public function get()
+    public function select($colunms = "*")
     {
-        $sql = "SELECT " . $this->_colunms . " FROM " . $this->table . $this->buildSql();
+        $sql = "SELECT " . $colunms . " FROM " . $this->table . $this->buildSql();
         $result = $this->query($sql);
         return $result->fetchAll();
     }
@@ -234,7 +265,7 @@ class Model
     }
 
     /**
-     * Ö´ÐÐSQlÓï¾ä
+     * æ‰§è¡ŒSQlè¯­å¥
      * @param $sql
      * @param array $data
      * @return \PDOStatement
@@ -242,7 +273,8 @@ class Model
      */
     public function query($sql)
     {
-        $result = $this->conn->prepare($sql);
+        $this->_sql = $sql;
+        $result = $this->_conn->prepare($sql);
         foreach ($this->_binds as $key => &$value) {
             if (trim($value) == "") {
                 continue;
@@ -259,37 +291,51 @@ class Model
     }
 
     /**
-     * ÊÂÎñ´¦Àí
-     * @param callable $transaction
+     * äº‹åŠ¡å¤„ç†
+     * @param callable $tx
      * @return bool
      */
-    public function transaction(callable $tx)
+    public function tx(callable $tx)
     {
-        $this->conn->beginTransaction();
+        $this->_conn->beginTransaction();
         $result = $tx();
         if ($result) {
-            $this->conn->commit();
+            $this->_conn->commit();
             return $result;
         }
-        $this->conn->rollBack();
+        $this->_conn->rollBack();
         return false;
     }
 
     /**
-     * Pdo²éÑ¯½á¹û×ª»»µ½¶ÔÏó²Ù×÷
+     * PdoæŸ¥è¯¢ç»“æžœè½¬æ¢åˆ°å¯¹è±¡æ“ä½œ
      * @param $name
      * @param $value
      */
     public function __set($name, $value)
     {
-        $this->{convertUnderline($name)} = $value;
+        $this->{$this->convertUnderline($name)} = $value;
     }
 
+    /**
+     * é©¼å³°å‘½å
+     * @param $str
+     * @return null|string|string[]
+     */
     protected function convertUnderline($str)
     {
         $str = preg_replace_callback('/([-_]+([a-z]{1}))/i', function ($matches) {
             return strtoupper($matches[2]);
         }, $str);
         return $str;
+    }
+
+    /**
+     * æ‰§è¡ŒåŽçš„sqlè¯­å¥
+     * @return mixed
+     */
+    public function sql()
+    {
+        return $this->_sql;
     }
 }

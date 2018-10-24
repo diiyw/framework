@@ -110,7 +110,7 @@ class Request
      * IP转到整型
      * @return int
      */
-    public function ip2long()
+    public function clientIp2long()
     {
         return ip2long($this->clientIP);
     }
@@ -224,6 +224,19 @@ class Request
     public function isDelete()
     {
         return $_SERVER["REQUEST_METHOD"] == "DELETE";
+    }
+
+    /**
+     * 是否是ajax请求
+     * @return bool
+     */
+    public function isAjax()
+    {
+
+        if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+            return true;
+        }
+        return false;
     }
 
     /**
