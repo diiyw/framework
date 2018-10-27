@@ -26,7 +26,7 @@ class Value
     public function required($message)
     {
         if (empty($this->_value)) {
-            throw new \Exception($message);
+            throw new \Exception($message, 1000);
         }
         return $this->_value;
     }
@@ -43,7 +43,7 @@ class Value
         if (preg_match($pattern, $this->_value)) {
             return $this->_value;
         }
-        throw new \Exception($message);
+        throw new \Exception($message, 1001);
     }
 
     /**
@@ -59,12 +59,12 @@ class Value
     {
         if ($type == "min") {
             if (mb_strlen($this->_value) < $v) {
-                throw new \Exception($message);
+                throw new \Exception($message, 1002);
             }
         }
         if ($type == "max") {
             if (mb_strlen($this->_value) > $v) {
-                throw new \Exception($message);
+                throw new \Exception($message, 1003);
             }
         }
         return $this->_value;
@@ -80,7 +80,7 @@ class Value
     public function compare($v, $message)
     {
         if ($this->_value != $v->_value) {
-            throw new \Exception($message);
+            throw new \Exception($message, 1004);
         }
         return $this->_value;
     }
@@ -95,8 +95,22 @@ class Value
     public function callback(callable $func, $message)
     {
         if (!$func($this->_value)) {
-            throw new \Exception($message);
+            throw new \Exception($message, 1005);
         }
+        return $this->_value;
+    }
+
+    /**
+     * json
+     * @return false|string
+     */
+    public function toJson()
+    {
+        return json_encode($this->_value);
+    }
+
+    public function Value()
+    {
         return $this->_value;
     }
 }

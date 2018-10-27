@@ -1,22 +1,22 @@
 <?php
 
-namespace thinker;
-
-class Thinker
-{
-    public static function handle()
+namespace thinker {
+    class Thinker
     {
-        Registry::set("request", new Request());
-        Registry::set("plugin", new Plugin(Registry::get("request")->projectPath . "/plugins"));
-        Registry::get("plugin")->beforeDispatch();
-        Registry::get("request", "parseUri");
-        Registry::set("input", new Input());
-        Registry::set("Response", new Response());
-        Registry::set("view", new View());
-        Registry::loadConfig("app");
-
-        $class = Registry::get("request")->module . "\\" . ucfirst(Registry::get("request")->controller);
-        $framer = new $class();
-        $framer->{Registry::get("request")->action}();
+        public static function handle()
+        {
+            $request = DI::set("request", new Request());
+            DI::set("plugin", new Plugin($request->projectPath . "/plugins"));
+            DI::load("plugin")->beforeDispatch();
+            DI::load("request", "parseUri");
+            DI::set("form", new Form());
+            DI::set("response", new Response());
+            DI::set("view", new View());
+            DI::loadConfig("app");
+            // Ö´ÐÐ½Å±¾
+            $class = $request->module . "\\" . ucfirst($request->controller);
+            $framer = new $class();
+        }
     }
 }
+
