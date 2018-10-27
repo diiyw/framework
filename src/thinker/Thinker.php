@@ -13,7 +13,7 @@ namespace thinker {
             DI::set("response", new Response());
             DI::set("view", new View());
             DI::loadConfig("app");
-            // ִ�нű�
+            // 执行脚本
             $class = $request->module . "\\" . ucfirst($request->controller);
             $framer = new $class();
         }

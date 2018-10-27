@@ -43,7 +43,7 @@ namespace thinker {
         }
 
         /**
-         * 加载容器中的对象
+         * 鍔犺浇瀹瑰櫒涓殑瀵硅薄
          * @param $obj
          * @return Input|Plugin|Request|Response|View
          */
@@ -53,7 +53,7 @@ namespace thinker {
         }
 
         /**
-         * 模板显示
+         * 妯℃澘鏄剧ず
          * @param $tpl
          * @param array $var
          */
@@ -63,7 +63,7 @@ namespace thinker {
         }
 
         /**
-         * 错误json输出
+         * 閿欒json杈撳嚭
          * @param $code
          * @param $message
          */
@@ -77,7 +77,7 @@ namespace thinker {
         }
 
         /**
-         * 成功json输出
+         * 鎴愬姛json杈撳嚭
          * @param $data
          */
         public function success($data)
@@ -90,7 +90,7 @@ namespace thinker {
         }
 
         /**
-         * 错误处理，可以被重写自动定义处理方式
+         * 閿欒澶勭悊锛屽彲浠ヨ閲嶅啓鑷姩瀹氫箟澶勭悊鏂瑰紡
          */
         public function _AjaxException(\Exception $exception)
         {
@@ -98,7 +98,7 @@ namespace thinker {
         }
 
         /**
-         * 错误处理，可以被重写自动定义处理方式
+         * 閿欒澶勭悊锛屽彲浠ヨ閲嶅啓鑷姩瀹氫箟澶勭悊鏂瑰紡
          */
         public function _Exception(\Exception $exception)
         {

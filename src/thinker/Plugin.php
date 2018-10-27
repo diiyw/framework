@@ -8,7 +8,7 @@ namespace thinker {
         private $plugins = [];
 
         /**
-         * ╪сть╡Е╪Ч
+         * Е┼═Х╫╫Ф▐▓Д╩╤
          * Plugin constructor.
          * @param Framer $framer
          */

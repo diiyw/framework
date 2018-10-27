@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 
-// ÏÂ»®Ïß±äÁ¿×ªÍÕ·åÃüÃû
+// ä¸‹åˆ’çº¿å˜é‡è½¬é©¼å³°å‘½å
 function convertUnderline($str)
 {
     $str = preg_replace_callback('/([-_]+([a-z]{1}))/i', function ($matches) {
@@ -10,12 +10,12 @@ function convertUnderline($str)
     return $str;
 }
 
-// $_ENV[1] = $argv[1] Á¬½ÓÃû³Æ
-// $_ENV[2] = $argv[2] ±íÃû³Æ
-// $_ENV[3] = $argv[3] Êý¾Ý¿âÅäÖÃÎÄ¼þ
+// $_ENV[1] = $argv[1] è¿žæŽ¥åç§°
+// $_ENV[2] = $argv[2] è¡¨åç§°
+// $_ENV[3] = $argv[3] æ•°æ®åº“é…ç½®æ–‡ä»¶
 
 $_ENV = $argv;
-// ¼ÓÔØÎÄ¼þ
+// åŠ è½½æ–‡ä»¶
 require_once __DIR__ . "/../src/thinker/Registry.php";
 require_once __DIR__ . '/../src/thinker/Model.php';
 
@@ -25,14 +25,14 @@ $config = include_once $_ENV[3];
 
 try {
 
-    // ³õÊ¼»¯Ä£¿é
+    // åˆå§‹åŒ–æ¨¡å—
     if ($_ENV[1] == "module") {
         $module = ucfirst($_ENV[2]);
-        // ´´½¨Ä¿Â¼
+        // åˆ›å»ºç›®å½•
         foreach (array("/controller", "/config", "/admin") as $path) {
             mkdir($_ENV[2] . $path, 0777, true);
         }
-        // ´´½¨ÎÄ¼þ
+        // åˆ›å»ºæ–‡ä»¶
         $files = [
             "/Router.php" => <<<ROUTER
 <?php
@@ -75,7 +75,7 @@ DB,
         return;
     }
 
-    // ´´½¨Ó¦ÓÃ
+    // åˆ›å»ºåº”ç”¨
     class App extends thinker\Model
     {
         public $name = "default";
@@ -87,7 +87,7 @@ DB,
         }
     }
 
-    // ´´½¨Ä£ÐÍ
+    // åˆ›å»ºæ¨¡åž‹
     $app = new App();
 
     $table = $_ENV[2];

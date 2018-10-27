@@ -5,21 +5,22 @@ namespace thinker {
     class DI
     {
         /**
-         * ÅäÖÃ
+         * é…ç½®
          * @var array
          */
         private static $config;
 
         /**
-         * ¶ÔÏó¼¯ºÏ
+         * å¯¹è±¡é›†åˆ
          * @var array
          */
         private static $objects;
 
         /**
-         * ×¢²á¶ÔÏó,Í¬Ê±·µ»Ø×¢²áµÄ¶ÔÏó
+         * æ³¨å†Œå¯¹è±¡,åŒæ—¶è¿”å›æ³¨å†Œçš„å¯¹è±¡
          * @param $name
          * @param $obj
+         * @return mixed
          */
         public static function set($name, $obj)
         {
@@ -28,7 +29,7 @@ namespace thinker {
         }
 
         /**
-         * ¼ÓÔØÅäÖÃ
+         * åŠ è½½é…ç½®
          * @param $name
          * @return array|mixed
          */
@@ -41,7 +42,7 @@ namespace thinker {
         }
 
         /**
-         * È¡¶ÔÏó
+         * å–å¯¹è±¡
          * @param $name
          * @return Request|Response|Input|Plugin|View
          */
