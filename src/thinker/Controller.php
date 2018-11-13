@@ -13,33 +13,43 @@ namespace thinker {
          */
         public function __construct()
         {
-            $request = DI::load("request");
-            $this->{$request->action}($request);
-
-            $request = DI::load("request");
-            if ($request->isAjax()) {
-                try {
+            $request = Container::load("request");
+            $response = Container::load("response");
+            $this->{$request->action}($request, $response);
+            try {
+                if ($request->isAjax()) {
+                    $resp = [];
                     $action = ucfirst($request->action);
                     header("Content-Type:application/json;charset:utf-8");
                     switch ($_SERVER["REQUEST_METHOD"]) {
                         case "GET":
-                            $response = $this->{"get" . $action}($request);
+                            $resp = $this->{"get" . $action}($request, $response);
+                            break;
                         case "POST":
-                            $response = $this->{"post" . $action}($request);
+                            $resp = $this->{"post" . $action}($request, $response);
+                            break;
                         case "PUT":
-                            $response = $this->{"put" . $action}($request);
+                            $resp = $this->{"put" . $action}($request, $response);
+                            break;
                         case "DELETE":
-                            $response = $this->{"delete" . $action}($request);
+                            $resp = $this->{"delete" . $action}($request, $response);
+                            break;
+                        default:
+                            $this->errorCode = 500;
+                            $this->message = "Unsupported method";
                     }
                     if ($this->errorCode != 0) {
                         $this->error($this->errorCode, $this->message);
                     }
-                    $this->success($response);
-                } catch (\Exception $e) {
-                    $this->_except($e);
+                    $this->success($resp);
                 }
+                $this->{$request->action}($request);
+            } catch (\Exception $e) {
+                if ($request->isAjax()) {
+                    $this->_AjaxException($e);
+                }
+                $this->_ThinkerException($e);
             }
-            $this->{$request->action}($request);
         }
 
         /**
@@ -49,7 +59,7 @@ namespace thinker {
          */
         public function load($obj)
         {
-            return DI::load($obj);
+            return Container::load($obj);
         }
 
         /**
@@ -90,17 +100,20 @@ namespace thinker {
         }
 
         /**
-         * 错误处理，可以被重写自动定义处理方式
+         * 表单错误处理，可以被重写自动定义处理方式
          */
         public function _AjaxException(\Exception $exception)
         {
-            $this->error($e->getCode(), $e->getMessage());
+            if ($exception->getCode() > 10000) {
+                $this->error($exception->getCode(), $exception->getMessage());
+            }
+            $this->error(500, "error occupied");
         }
 
         /**
-         * 错误处理，可以被重写自动定义处理方式
+         * 业务错误处理，可以被重写自动定义处理方式
          */
-        public function _Exception(\Exception $exception)
+        public function _ThinkerException(\Exception $exception)
         {
             echo $exception->getMessage();
         }

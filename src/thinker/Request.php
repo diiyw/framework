@@ -28,19 +28,19 @@ namespace thinker {
              * 请求模块
              * @var string
              */
-            $module = "index",
+            $module,
 
             /**
              * 请求控制器
              * @var string
              */
-            $controller = "index",
+            $controller,
 
             /**
              * 请求动作
              * @var string
              */
-            $action = "index",
+            $action,
 
             /**
              * 请求方法
@@ -76,30 +76,18 @@ namespace thinker {
              * 应用目录
              * @var string
              */
-            $projectPath,
-
-            /**
-             * 输入
-             * @var Input
-             */
-            $input;
-
-        /**
-         * URl重写回调
-         * @var callable
-         */
-        private $rewrite;
+            $projectPath;
 
 
         public function __construct()
         {
+            $this->parseUri();
             $this->userAgent = $_SERVER["HTTP_USER_AGENT"];
             $this->clientIP = $this->clientIPAddress();
             $this->method = $_SERVER["REQUEST_METHOD"];
             if (!empty($_SERVER["HTTP_REFERER"])) {
                 $this->referer = $_SERVER["HTTP_REFERER"];
             }
-            $this->input = new Input();
             $this->requestTime = $_SERVER["REQUEST_TIME"];
             $this->rootPath = dirname($_SERVER["DOCUMENT_ROOT"]);
             $this->publicPath = $_SERVER["DOCUMENT_ROOT"];
@@ -130,44 +118,27 @@ namespace thinker {
          */
         public function parseUri()
         {
-            $uri = $this->getUri();
-            if (!empty($uri[1])) {
-                $this->controller = $uri[1];
+            $this->pathInfo = trim(explode("?", $_SERVER["REQUEST_URI"])[0], "/");
+            $uri = explode("/", $this->pathInfo);
+            $this->module = array_shift($uri);
+            if (!$this->module) {
+                $this->module = "home";
             }
-            if (!empty($uri[2])) {
-                $this->action = $uri[2];
+            $this->controller = array_shift($uri);
+            if (!$this->controller) {
+                $this->controller = "Index";
             }
-            if (count($uri) > 3) {
-                $params = array_splice($uri, 3);
-                //多余PATH_INFO解析为get请求参数
-                foreach ($params as $k => $v) {
-                    if (isset($params[$k + 1])) {
-                        $_REQUEST[$v] = $_GET[$v] = $params[$k + 1];
-                        unset($params[$k + 1]);
-                    }
+            $this->action = array_shift($uri);
+            if (!$this->action) {
+                $this->action = "index";
+            }
+            //多余PATH_INFO解析为get请求参数
+            foreach ($uri as $k => $v) {
+                if (isset($uri[$k + 1])) {
+                    $_REQUEST[$v] = $_GET[$v] = $uri[$k + 1];
+                    unset($uri[$k + 1]);
                 }
             }
-        }
-
-        /**
-         * 解析PATH_INFO
-         * @return array
-         */
-        private function getUri()
-        {
-            $uri = trim(explode("?", $_SERVER["REQUEST_URI"])[0], "/");
-            if (!empty($uri)) {
-                $this->module = substr($uri, 0, strpos($uri, "/"));
-                if (empty($this->module)) {
-                    $this->module = $uri;
-                }
-                if ($this->rewrite) {
-                    $this->pathInfo = $this->rewrite($this->pathInfo);
-                }
-                return explode("/", trim($this->pathInfo, "/"));
-            }
-
-            return isset($_SERVER["argv"]) ? array_splice($_SERVER["argv"], 1) : [];
         }
 
         /**
@@ -232,7 +203,6 @@ namespace thinker {
          */
         public function isAjax()
         {
-
             if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
                 return true;
             }
@@ -240,21 +210,68 @@ namespace thinker {
         }
 
         /**
-         * 注册路由
-         * @param callable $rewriter
+         * $_GET
+         * @param string $name
+         * @return array|string
          */
-        public function registerRouter(callable $rewriter)
+        public function get($name = "", $defaut = "")
         {
-            $this->rewrite = $rewriter;
+            if (isset($_GET[$name])) {
+                return $this->removeXSS($_GET[$name]);
+            }
+            return $defaut;
         }
 
         /**
-         * 返回表单操作对象
-         * @return Form
+         * $_POST
+         * @param string $name
+         * @return array|string
          */
-        public function getForm()
+        public function post($name = "", $defaut = "")
         {
-            return DI::load("form");
+            if (isset($_POST[$name])) {
+                return $this->removeXSS($_POST[$name]);
+            }
+            return $defaut;
+        }
+
+        /**
+         * $_INPUT
+         * @param string $name
+         * @return array|string
+         */
+        public function input($name = "")
+        {
+            $input = file_get_contents('php://input');
+            $array = json_decode($input, true);
+            if ($array) {
+                return $this->removeXSS($array);
+            }
+            return $input;
+        }
+
+        /**
+         * XSS过滤
+         * @param $data
+         * @return array|string
+         */
+        private function removeXSS($data)
+        {
+            if (!is_array($data)) {
+                if (mb_detect_encoding($data, "UTF-8")) {
+                    return htmlspecialchars(trim($data));
+                }
+
+                return htmlspecialchars(trim($data), ENT_QUOTES, 'GB2312');
+            }
+            foreach ($data as $k => $v) {
+                if (is_array($v)) {
+                    $this->removeXSS($v);
+                } else {
+                    $data[$k] = htmlspecialchars(trim($v));
+                }
+            }
+            return $data;
         }
     }
 }

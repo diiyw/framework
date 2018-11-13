@@ -1,6 +1,7 @@
 <?php
 
 namespace thinker {
+
     class Model
     {
 
@@ -9,6 +10,12 @@ namespace thinker {
          * @var array
          */
         private $_where = [];
+
+        /**
+         * Between 条件
+         * @var array
+         */
+        private $_between = [];
 
         /**
          * 排序条件
@@ -68,17 +75,20 @@ namespace thinker {
          * 新建模型
          * @param $model
          */
-        public function __construct($mapper = [])
+        public function __construct($name = "")
         {
-            $objName = "CONN::" . $this->name;
-            $config = DI::load("dbConfig")[$this->name];
-            if (!DI::load($objName) instanceof \PDO) {
-                DI::set($objName, new \PDO(
+            if (!empty($name)) {
+                $this->_name = $name;
+            }
+            $objName = "CONN::" . $this->_name;
+            $config = Container::load("dbConfig")[$this->_name];
+            if (!Container::load($objName) instanceof \PDO) {
+                Container::set($objName, new \PDO(
                     $config['dsn'], $config['user'], $config['password'],
                     [\PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8']
                 ));
             }
-            $this->_conn = DI::load($objName);
+            $this->_conn = Container::load($objName);
         }
 
         /**
@@ -90,7 +100,20 @@ namespace thinker {
             if (empty($where)) {
                 return;
             }
-            $this->where = array_merge($this->where, $where);
+            $this->_where = array_merge($this->_where, $where);
+            return $this;
+        }
+
+        /**
+         * between语句
+         * @param array $between
+         */
+        public function between(array $between)
+        {
+            if (empty($between)) {
+                return;
+            }
+            $this->_between = array_merge($this->_between, $between);
             return $this;
         }
 
@@ -98,13 +121,13 @@ namespace thinker {
          * 根据主键查询最新一条记录
          * @param array $where
          */
-        public function last($primaryKey = "")
+        public function latest($primaryKey = "")
         {
             if (empty($primaryKey)) {
                 $this->first();
                 return;
             }
-            $this->where([
+            $this->_where([
                 $this->_primaryKey => ["=", $primaryKey]
             ]);
             return $this->select("*");
@@ -117,7 +140,7 @@ namespace thinker {
          */
         public function limit($limit)
         {
-            $this->limit = $limit;
+            $this->_limit = $limit;
             return $this;
         }
 
@@ -128,7 +151,7 @@ namespace thinker {
          */
         public function page($page)
         {
-            $this->page = $page;
+            $this->_page = $page;
             return $this;
         }
 
@@ -138,7 +161,7 @@ namespace thinker {
          */
         public function groupBy($by)
         {
-            $this->groupBy = $by;
+            $this->_groupBy = $by;
             return $this;
         }
 
@@ -151,7 +174,7 @@ namespace thinker {
             if (empty($by)) {
                 return;
             }
-            $this->orderBy = array_merge($this->orderBy, $by);
+            $this->_orderBy = array_merge($this->_orderBy, $by);
             return $this;
         }
 
@@ -165,6 +188,11 @@ namespace thinker {
                     $bound = $item[2];
                 }
                 $where .= $bound . $field . $item[0] . "?";
+            }
+            foreach ($this->_between as $field => $item) {
+                $where .= " AND " . $field . " BETWEEN ? AND ?";
+                $this->binds[] = $item[0];
+                $this->binds[] = $item[1];
             }
             if (!empty($where)) {
                 $where = " WHERE " . ltrim($where, "AND");
@@ -251,7 +279,6 @@ namespace thinker {
          * @param $colunms
          * @param bool $all
          * @return array|mixed
-         * @throws \Exception
          */
         public function select($colunms = "*")
         {
@@ -276,7 +303,6 @@ namespace thinker {
          */
         public function query($sql)
         {
-            $this->_sql = $sql;
             $result = $this->_conn->prepare($sql);
             foreach ($this->_binds as $key => &$value) {
                 if (trim($value) == "") {
@@ -331,15 +357,6 @@ namespace thinker {
                 return strtoupper($matches[2]);
             }, $str);
             return $str;
-        }
-
-        /**
-         * 执行后的sql语句
-         * @return mixed
-         */
-        public function sql()
-        {
-            return $this->_sql;
         }
 
         /**

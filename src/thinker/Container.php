@@ -1,8 +1,8 @@
 <?php
 
 namespace thinker {
-    
-    class DI
+
+    class Container
     {
         /**
          * 配置
@@ -36,7 +36,7 @@ namespace thinker {
         public static function loadConfig($name)
         {
             if (!isset(self::$config[$name])) {
-                self::$config[$name] = include_once self::get("request")->projectPath . "/config/" . $name . ".php";
+                self::$config[$name] = include_once self::load("request")->projectPath . "/config/" . $name . ".php";
             }
             return self::$config[$name];
         }
@@ -44,15 +44,12 @@ namespace thinker {
         /**
          * 取对象
          * @param $name
-         * @return Request|Response|Input|Plugin|View
+         * @return Request|Response|View
          */
-        public static function load($name, $method = "")
+        public static function load($name)
         {
             if (empty(self::$objects[$name])) {
                 return null;
-            }
-            if (!empty($method)) {
-                return self::$objects[$name]->$method();
             }
             return self::$objects[$name];
         }

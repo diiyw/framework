@@ -4,7 +4,7 @@ namespace thinker {
 
     class View
     {
-        protected $tags = [];
+        protected $labels = [];
 
         protected $path;
 
@@ -14,14 +14,13 @@ namespace thinker {
 
         /**
          * View constructor.
-         * @param Request $request
          */
         public function __construct()
         {
-            $this->cache = DI::load("request")->publicPath . "/cache";
-            $this->path = DI::load("request")->rootPath . "/views";
+            $this->cache = Container::load("request")->publicPath . "/cache";
+            $this->path = Container::load("request")->rootPath . "/views";
             //注册模板标签
-            $this->tags = [
+            $this->labels = [
                 "@{if (.+?)}@" => function ($match) {
                     return "<?php if($match[1]):?>";
                 },
@@ -80,7 +79,7 @@ namespace thinker {
             $data = file_get_contents($file);
 
             //标签解析
-            foreach ($this->tags as $pattern => $callback) {
+            foreach ($this->labels as $pattern => $callback) {
                 $data = preg_replace_callback($pattern, $callback, $data);
             }
             $path = dirname($cache);
@@ -93,20 +92,20 @@ namespace thinker {
 
         /**
          * 渲染模板文件
-         * @param string $tpl
+         * @param $action
          * @param array $vars
          */
-        public function display($aciton, array $vars = [])
+        public function display($action, array $vars = [])
         {
             $file = $this->path . DIRECTORY_SEPARATOR .
                 $this->theme . DIRECTORY_SEPARATOR .
                 strtolower(DI::load("request")->controller) . DIRECTORY_SEPARATOR .
-                $aciton . ".phtml";
+                $action . ".phtml";
             $cache = $this->cache . DIRECTORY_SEPARATOR .
                 $this->theme . DIRECTORY_SEPARATOR .
                 strtolower(DI::load("request")->module) . DIRECTORY_SEPARATOR .
                 strtolower(DI::load("request")->controller) . DIRECTORY_SEPARATOR .
-                $aciton . ".phtml";
+                $action . ".phtml";
             if (file_exists($file)) {
                 $this->compile($cache, $file);
                 if (is_file($cache)) {
@@ -118,12 +117,12 @@ namespace thinker {
 
         /**
          * 添加自定义标签
-         * @param string $tag
+         * @param $label
          * @param callable $callback
          */
-        public function register($tag, callable $callback)
+        public function register($label, callable $callback)
         {
-            $this->tags[$tag] = $callback;
+            $this->labels[$label] = $callback;
         }
     }
 }

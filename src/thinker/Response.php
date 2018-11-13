@@ -1,6 +1,7 @@
 <?php
 
 namespace thinker {
+
     class Response
     {
         /**
@@ -47,6 +48,29 @@ namespace thinker {
             header("Content-Type:application/json;charset:utf-8");
             echo json_encode($data);
             exit(0);
+        }
+
+        /**
+         * 显示一个模板
+         * @param string $action
+         * @param array $var
+         */
+        public function display($action = "", $var = [])
+        {
+            if ($action == "") {
+                $action = Container::load("response")->action;
+            }
+            Container::load("view")->display($action, $var);
+        }
+
+        /**
+         * 抛出错误
+         * @param $error
+         * @throws \Exception
+         */
+        public function error($error)
+        {
+            throw new \Exception($error);
         }
     }
 }
