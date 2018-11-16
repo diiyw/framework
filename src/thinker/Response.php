@@ -55,7 +55,7 @@ namespace thinker {
          * @param string $action
          * @param array $var
          */
-        public function display($action = "", $var = [])
+        public function view($action = "", $var = [])
         {
             if ($action == "") {
                 $action = Container::load("response")->action;

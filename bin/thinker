@@ -261,7 +261,7 @@ $modelFields
      * @param Request \$request
      * @return array|mixed
      */
-    public function getOne(Request \$request)
+    public function getLast(Request \$request)
     {
         \$this->filterParams(\$request);
         return \$this->first();

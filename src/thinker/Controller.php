@@ -33,9 +33,9 @@ namespace thinker {
                             break;
                         case "DELETE":
                             $resp = $this->{"delete" . $action}($request, $response);
+                            $this->errorCode = 500;
                             break;
                         default:
-                            $this->errorCode = 500;
                             $this->message = "Unsupported method";
                     }
                     if ($this->errorCode != 0) {
