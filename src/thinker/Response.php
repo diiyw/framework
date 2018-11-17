@@ -58,7 +58,7 @@ namespace thinker {
         public function view($action = "", $var = [])
         {
             if ($action == "") {
-                $action = Container::load("response")->action;
+                $action = Container::load("request")->action;
             }
             Container::load("view")->display($action, $var);
         }

@@ -11,31 +11,41 @@ namespace thinker {
         protected $rules = [];
 
         /**
+         * @var Request
+         */
+        protected $request;
+
+
+        /**
+         * @var Response
+         */
+        protected $respnose;
+
+        /**
          * Controller constructor.
          */
         public function __construct()
         {
-            $request = Container::load("request");
-            $response = Container::load("response");
+            $this->request = Container::load("request");
+            $this->response = Container::load("response");
             $this->rules = Container::loadConfig("rules");
-            $this->{$request->action}($request, $response);
             try {
-                if ($request->isAjax()) {
+                if ($this->request->isAjax()) {
                     $resp = [];
-                    $action = ucfirst($request->action);
+                    $action = ucfirst($this->request->action);
                     header("Content-Type:application/json;charset:utf-8");
                     switch ($_SERVER["REQUEST_METHOD"]) {
                         case "GET":
-                            $resp = $this->{"get" . $action}($request, $response);
+                            $resp = $this->{"get" . $action}();
                             break;
                         case "POST":
-                            $resp = $this->{"post" . $action}($request, $response);
+                            $resp = $this->{"post" . $action}();
                             break;
                         case "PUT":
-                            $resp = $this->{"put" . $action}($request, $response);
+                            $resp = $this->{"put" . $action}();
                             break;
                         case "DELETE":
-                            $resp = $this->{"delete" . $action}($request, $response);
+                            $resp = $this->{"delete" . $action}();
                             $this->errorCode = 500;
                             break;
                         default:
@@ -46,9 +56,9 @@ namespace thinker {
                     }
                     $this->success($resp);
                 }
-                $this->{$request->action}($request);
+                $this->{$this->request->action}();
             } catch (\Exception $e) {
-                if ($request->isAjax()) {
+                if ($this->request->isAjax()) {
                     $this->_AjaxException($e);
                 }
                 $this->_ThinkerException($e);
@@ -116,7 +126,7 @@ namespace thinker {
          */
         public function _ThinkerException(\Exception $exception)
         {
-            echo $exception->getMessage();
+            throw $exception;
         }
     }
 }

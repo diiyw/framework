@@ -99,12 +99,12 @@ namespace thinker {
         {
             $file = $this->path . DIRECTORY_SEPARATOR .
                 $this->theme . DIRECTORY_SEPARATOR .
-                strtolower(DI::load("request")->controller) . DIRECTORY_SEPARATOR .
+                strtolower(Container::load("request")->controller) . DIRECTORY_SEPARATOR .
                 $action . ".phtml";
             $cache = $this->cache . DIRECTORY_SEPARATOR .
                 $this->theme . DIRECTORY_SEPARATOR .
-                strtolower(DI::load("request")->module) . DIRECTORY_SEPARATOR .
-                strtolower(DI::load("request")->controller) . DIRECTORY_SEPARATOR .
+                strtolower(Container::load("request")->module) . DIRECTORY_SEPARATOR .
+                strtolower(Container::load("request")->controller) . DIRECTORY_SEPARATOR .
                 $action . ".phtml";
             if (file_exists($file)) {
                 $this->compile($cache, $file);

@@ -33,12 +33,14 @@ namespace thinker {
          * @param $name
          * @return array|mixed
          */
-        public static function loadConfig($name)
+        public static function loadConfig($name, $key = "")
         {
             if (!isset(self::$config[$name])) {
-                self::$config[$name] = include_once self::load("request")->projectPath . "/config/" . $name . ".php";
+                $request = self::load("request");
+                $module = $request->projectPath . "/modules/" . $request->module;
+                self::$config[$name] = include_once $module . "/config/" . $name . ".php";
             }
-            return self::$config[$name];
+            return isset(self::$config[$name][$key]) ? self::$config[$name][$key] : "";
         }
 
         /**
