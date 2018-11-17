@@ -212,35 +212,42 @@ namespace thinker {
         /**
          * $_GET
          * @param string $name
+         * @param string $default
          * @return array|string
          */
-        public function get($name = "", $defaut = "")
+        public function get($name = "", $default = "")
         {
+            if (!$name) {
+                return $this->removeXSS($_GET);
+            }
             if (isset($_GET[$name])) {
                 return $this->removeXSS($_GET[$name]);
             }
-            return $defaut;
+            return $default;
         }
 
         /**
          * $_POST
          * @param string $name
+         * @param string $default
          * @return array|string
          */
-        public function post($name = "", $defaut = "")
+        public function post($name = "", $default = "")
         {
+            if (!$name) {
+                return $this->removeXSS($_POST);
+            }
             if (isset($_POST[$name])) {
                 return $this->removeXSS($_POST[$name]);
             }
-            return $defaut;
+            return $default;
         }
 
         /**
          * $_INPUT
-         * @param string $name
          * @return array|string
          */
-        public function input($name = "")
+        public function input()
         {
             $input = file_get_contents('php://input');
             $array = json_decode($input, true);
@@ -248,6 +255,23 @@ namespace thinker {
                 return $this->removeXSS($array);
             }
             return $input;
+        }
+
+        /**
+         * $_REQUEST
+         * @param $name
+         * @param string $default
+         * @return array|string
+         */
+        public function data($name = "", $default = "")
+        {
+            if (!$name) {
+                return $this->removeXSS($_REQUEST);
+            }
+            if (isset($_REQUEST[$name])) {
+                return $this->removeXSS($_REQUEST[$name]);
+            }
+            return $default;
         }
 
         /**

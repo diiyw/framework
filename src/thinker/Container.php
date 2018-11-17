@@ -20,7 +20,7 @@ namespace thinker {
          * 注册对象,同时返回注册的对象
          * @param $name
          * @param $obj
-         * @return mixed
+         * @return Plugin|View|Request|Object
          */
         public static function set($name, $obj)
         {

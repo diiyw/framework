@@ -8,6 +8,8 @@ namespace thinker {
 
         protected $message = "Invalid request";
 
+        protected $rules = [];
+
         /**
          * Controller constructor.
          */
@@ -15,6 +17,7 @@ namespace thinker {
         {
             $request = Container::load("request");
             $response = Container::load("response");
+            $this->rules = Container::loadConfig("rules");
             $this->{$request->action}($request, $response);
             try {
                 if ($request->isAjax()) {
@@ -55,21 +58,11 @@ namespace thinker {
         /**
          * 加载容器中的对象
          * @param $obj
-         * @return Input|Plugin|Request|Response|View
+         * @return Request|Response|View
          */
         public function load($obj)
         {
             return Container::load($obj);
-        }
-
-        /**
-         * 模板显示
-         * @param $tpl
-         * @param array $var
-         */
-        public function display($tpl, $var = [])
-        {
-            $this->load("view")->display($tpl, $var);
         }
 
         /**
@@ -79,11 +72,19 @@ namespace thinker {
          */
         public function error($code, $message)
         {
-            echo json_encode([
+            Container::load("response")->json(array(
                 "code" => $code,
-                "message" => $message
-            ]);
-            die(0);
+                "message" => $message,
+            ));
+        }
+
+        public function filter(Request $request, $rule)
+        {
+            if (!isset($this->rules[$rule])) {
+                return $request->data();
+            }
+            $filter = new Filter($request, $this->rules[$rule]);
+            return $filter->data();
         }
 
         /**
@@ -92,15 +93,15 @@ namespace thinker {
          */
         public function success($data)
         {
-            echo json_encode([
+            Container::load("response")->json(array(
                 "code" => 200,
-                "result" => $data
-            ]);
-            die(0);
+                "result" => $data,
+            ));
         }
 
         /**
          * 表单错误处理，可以被重写自动定义处理方式
+         * @param \Exception $exception
          */
         public function _AjaxException(\Exception $exception)
         {
