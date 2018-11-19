@@ -4,7 +4,7 @@
     "description": "A Lightweight framework",
     "keywords": ["thinker", "framework"],
     "homepage": "http://github.com/diiyw/thinker",
-    "minimum-stability":"beta",
+    "minimum-stability":"stable",
     "type": "library",
     "license": "MIT",
     "authors": [
