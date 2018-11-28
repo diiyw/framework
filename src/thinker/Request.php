@@ -82,15 +82,16 @@ namespace thinker {
         public function __construct()
         {
             $this->parseUri();
-            $this->userAgent = $_SERVER["HTTP_USER_AGENT"];
+            $this->userAgent = $_SERVER["HTTP_USER_AGENT"] ?? "PHP_CLI";
             $this->clientIP = $this->clientIPAddress();
-            $this->method = $_SERVER["REQUEST_METHOD"];
+            $this->method = $_SERVER["REQUEST_METHOD"] ?? "CLI_GET";
             if (!empty($_SERVER["HTTP_REFERER"])) {
                 $this->referer = $_SERVER["HTTP_REFERER"];
             }
             $this->requestTime = $_SERVER["REQUEST_TIME"];
-            $this->rootPath = dirname($_SERVER["DOCUMENT_ROOT"]);
-            $this->publicPath = $_SERVER["DOCUMENT_ROOT"];
+            $wwwPath = empty($_SERVER["DOCUMENT_ROOT"]) ? $_SERVER["PWD"] : $_SERVER["DOCUMENT_ROOT"];
+            $this->rootPath = dirname($wwwPath);
+            $this->publicPath = $wwwPath;
             $this->projectPath = $this->rootPath . "/app";
         }
 
@@ -118,8 +119,12 @@ namespace thinker {
          */
         public function parseUri()
         {
-            $this->pathInfo = trim(explode("?", $_SERVER["REQUEST_URI"])[0], "/");
-            $uri = explode("/", $this->pathInfo);
+            if (isset($_SERVER["REQUEST_URI"])) {
+                $uri = explode("/", explode("?", trim($_SERVER["REQUEST_URI"], "/"))[0]);
+            } else {
+                $uri = array_slice($_SERVER["argv"], 1);
+            }
+            $this->pathInfo = join("/", $uri);
             $this->module = array_shift($uri);
             if (!$this->module) {
                 $this->module = "home";
@@ -130,7 +135,7 @@ namespace thinker {
             }
             $this->action = array_shift($uri);
             if (!$this->action) {
-                $this->action = "index";
+                $this->action = "view";
             }
             //多余PATH_INFO解析为get请求参数
             foreach ($uri as $k => $v) {
@@ -296,6 +301,54 @@ namespace thinker {
                 }
             }
             return $data;
+        }
+
+        public function setCookie($key, $value = null, $expire = null, $path = null, $domain = null, $secure = null, $httponly = null)
+        {
+            setcookie($key, $value, $expire, $path, $domain, $secure, $httponly);
+        }
+
+        public function getCookie($key)
+        {
+            return isset($_COOKIE[$key]) ? $_COOKIE[$key] : null;
+        }
+
+        public function removeCookie($key)
+        {
+            unset($_COOKIE[$key]);
+        }
+
+        public function destroyCookie()
+        {
+            unset($_COOKIE);
+        }
+
+        public function setSession($key, $value = null)
+        {
+            $_SESSION[$key] = $value;
+            return true;
+        }
+
+        public function sessionStart()
+        {
+            if (session_status() != 2) {
+                session_start();
+            }
+        }
+
+        public function removeSession($key)
+        {
+            unset($_SESSION[$key]);
+        }
+
+        public function getSession($key)
+        {
+            return isset($_SESSION[$key]) ? $_SESSION[$key] : null;
+        }
+
+        public function destroySession()
+        {
+            session_destroy();
         }
     }
 }

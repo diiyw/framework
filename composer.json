@@ -4,7 +4,7 @@
     "description": "A Lightweight framework",
     "keywords": ["thinker", "framework"],
     "homepage": "http://github.com/diiyw/thinker",
-    "minimum-stability":"stable",
+    "minimum-stability":"beta",
     "type": "library",
     "license": "MIT",
     "authors": [
@@ -21,7 +21,7 @@
     },
     "require": {
         "php": ">=7.0.0",
-        "ext-json":"*"
+        "ext-json":"*",
 
     },
     "bin": ["bin/thinker"]

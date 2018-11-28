@@ -8,7 +8,10 @@ namespace thinker {
 
         protected $message = "Invalid request";
 
-        protected $rules = [];
+        /**
+         * @var array
+         */
+        protected $rules;
 
         /**
          * @var Request
@@ -26,9 +29,9 @@ namespace thinker {
          */
         public function __construct()
         {
+            $this->rules = Container::loadConfig("rules");
             $this->request = Container::load("request");
             $this->response = Container::load("response");
-            $this->rules = Container::loadConfig("rules");
             try {
                 if ($this->request->isAjax()) {
                     $resp = [];
@@ -36,16 +39,16 @@ namespace thinker {
                     header("Content-Type:application/json;charset:utf-8");
                     switch ($_SERVER["REQUEST_METHOD"]) {
                         case "GET":
-                            $resp = $this->{"get" . $action}();
+                            $resp = $this->get();
                             break;
                         case "POST":
-                            $resp = $this->{"post" . $action}();
+                            $resp = $this->post();
                             break;
                         case "PUT":
-                            $resp = $this->{"put" . $action}();
+                            $resp = $this->put();
                             break;
                         case "DELETE":
-                            $resp = $this->{"delete" . $action}();
+                            $resp = $this->delete();
                             $this->errorCode = 500;
                             break;
                         default:
@@ -82,19 +85,30 @@ namespace thinker {
          */
         public function error($code, $message)
         {
-            Container::load("response")->json(array(
-                "code" => $code,
-                "message" => $message,
-            ));
+            if ($this->request->isAjax()) {
+                Container::load("response")->json(array(
+                    "code" => $code,
+                    "message" => $message,
+                ));
+
+            }
+            throw new \Exception($message, $code);
         }
 
-        public function filter(Request $request, $rule)
+        /**
+         * 应用过滤器获取表单数据
+         * @param $rule
+         * @param string $key
+         * @return array|string
+         * @throws \Exception
+         */
+        public function filter($rule, $key = "")
         {
             if (!isset($this->rules[$rule])) {
-                return $request->data();
+                return $request->data($key);
             }
-            $filter = new Filter($request, $this->rules[$rule]);
-            return $filter->data();
+            $filter = new Filter($this->request, $this->rules[$rule]);
+            return $filter->data($key);
         }
 
         /**

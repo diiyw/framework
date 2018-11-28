@@ -34,26 +34,21 @@ class Model extends Command
     public function execute(InputInterface $input, OutputInterface $output)
     {
         // 加载配置
-        Container::set("dbConfig", include_once $input->getOption("config"));
-
+        $config = $input->getOption("config");
+        if (!file_exists($config)) {
+            throw new \InvalidArgumentException('The database config must be specified');
+        }
+        Container::set("dbConfig", include_once $config);
         $module = $input->getArgument("name");
-
         // 创建模型
         $model = new \thinker\Model("default");
-
         $tables = Container::load("dbConfig")["default"]["tables"];
-
         // 创建所有模型
         foreach ($tables as $table) {
-
             $modelPath = explode("_", $table);
-
             $name = ucfirst(array_pop($modelPath));
-
             $modelName = $name . "Model";
-
             $modelPath = array_splice($modelPath, 1);
-
             // namespace
             $namespace = "";
             $var_namespace = "";
@@ -62,27 +57,15 @@ class Model extends Command
                 $namespace = "\nnamespace " . $var_namespace . ";\n";
                 $var_namespace .= "\\";
             }
-
             $path = join("/", $modelPath);
             $modelPath = $module . "/model/" . $path;
-
             // 模型目录创建
             @mkdir($modelPath, 0777, true);
-
-            // 模型库创建
-            $libraryPath = $module . "/library/" . $path;
-            @mkdir($libraryPath, 0777, true);
-
             $result = $model->query("SHOW FULL COLUMNS FROM $table");
-
             $columns = $result->fetchAll();
-
             $properties = "";
-
             $modelFields = [];
-
             $conditions = "";
-
             if (!empty($columns)) {
                 foreach ($columns as $k => $column) {
                     // 模型
@@ -99,7 +82,6 @@ class Model extends Command
                     $field = $this->convertUnderline(lcfirst($column["Field"]));
                     $properties .= $comment . "    public $" . $field . ";\n";
                     $modelFields[] = "            \"{$column["Field"]}\" => \$this->$field,";
-
                     // 模型库
                     $fieldName = $column["Field"];
                     $formField = $this->convertUnderline(ltrim(str_replace($module, "", $fieldName), "_"));
@@ -231,35 +213,6 @@ $modelFields
 
 MODEL;
             file_put_contents($modelPath . "/" . $modelName . ".php", $modelContent);
-            // 创建基本库
-            $moduleLibrary = <<<LIB
-<?php
-$namespace
-use thinker\Container;
-
-class {$name}Lib
-{
-
-   /**
-    * 模型
-    * @var \\$var_namespace$modelName;
-    */
-    private \$model;
-    
-   /**
-    * 请求对象
-    * @var \\thinker\\Request;
-    */
-    private \$request;
-
-    public function __construct()
-    {
-        \$this->model = new $modelName();
-        \$this->request = Container::load("request");
-    }
-}
-LIB;
-            file_put_contents($libraryPath . "/" . $name . "Lib.php", $moduleLibrary);
         }
     }
 

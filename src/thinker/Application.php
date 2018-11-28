@@ -17,13 +17,18 @@ namespace thinker {
             $plugin = Container::set("plugin", new Plugin());
             $plugin->load($request->projectPath . "/plugins");
             $plugin->beforeDispatch();
+            $modulePath = $request->projectPath . "\modules";
+            $includePath = get_include_path();
+            $includePath .= PATH_SEPARATOR . $modulePath;
+            $includePath .= PATH_SEPARATOR . $modulePath . DIRECTORY_SEPARATOR . $request->module . "/library";
+            $includePath .= PATH_SEPARATOR . $modulePath . DIRECTORY_SEPARATOR . $request->module . "/model";
+            set_include_path($includePath);
             // 自动加载
             spl_autoload_register(function ($class) use ($request) {
-                $file = $request->projectPath . "/modules/" . $class . ".php";
-                if (file_exists($file)) {
-                    include_once $file;
-                }
+                $file = $class . ".php";
+                @include_once $file;
             });
+            Container::set("rule", include_once $request->module . "/config/rules.php");
             // 执行脚本
             $class = $request->module . "\\" . ucfirst($request->controller);
             new $class();

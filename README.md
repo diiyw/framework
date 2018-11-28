@@ -1,10 +1,6 @@
 # Thinker 框架核心
 
-Thinker 框架核心，使用Composer引入到项目中即可使用
-
-# 环境要求
-- PHP >= 7.0 
-- Composer > 1.4
+Thinker 框架核心，框架不预置数据库操作、验证码等等，使用Composer引入到项目中即可使用
 
 # 内置模板的使用
 

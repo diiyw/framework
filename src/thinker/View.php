@@ -97,17 +97,13 @@ namespace thinker {
          */
         public function display($action, array $vars = [])
         {
-            $file = $this->path . DIRECTORY_SEPARATOR .
-                $this->theme . DIRECTORY_SEPARATOR .
-                strtolower(Container::load("request")->controller) . DIRECTORY_SEPARATOR .
-                $action . ".phtml";
-            $cache = $this->cache . DIRECTORY_SEPARATOR .
-                $this->theme . DIRECTORY_SEPARATOR .
+            $file = $this->theme . DIRECTORY_SEPARATOR .
                 strtolower(Container::load("request")->module) . DIRECTORY_SEPARATOR .
-                strtolower(Container::load("request")->controller) . DIRECTORY_SEPARATOR .
-                $action . ".phtml";
-            if (file_exists($file)) {
-                $this->compile($cache, $file);
+                strtolower(Container::load("request")->controller) . ".phtml";
+            $source = $this->path . DIRECTORY_SEPARATOR . $file;
+            $cache = $this->cache . DIRECTORY_SEPARATOR . $file;
+            if (file_exists($source)) {
+                $this->compile($cache, $source);
                 if (is_file($cache)) {
                     extract($vars);
                     require_once $cache;

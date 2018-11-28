@@ -66,10 +66,22 @@ namespace thinker {
         protected $_name = "default";
 
         /**
+         * 连接表
+         * @var array
+         */
+        protected $_join = [];
+
+        /**
          * 主键名称
          * @var string
          */
         protected $_primaryKey;
+
+        /**
+         * 表别名
+         * @var string
+         */
+        private $_from = "";
 
         /**
          * 新建模型
@@ -82,38 +94,53 @@ namespace thinker {
             }
             $objName = "CONN::" . $this->_name;
             $config = Container::load("dbConfig")[$this->_name];
-            if (!Container::load($objName) instanceof \PDO) {
-                Container::set($objName, new \PDO(
-                    $config['dsn'], $config['user'], $config['password'],
-                    [\PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8']
-                ));
+            try {
+                if (!Container::load($objName) instanceof \PDO) {
+                    Container::set($objName, new \PDO(
+                        $config['dsn'], $config['user'], $config['password'],
+                        [\PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8']
+                    ));
+                }
+                $this->_conn = Container::load($objName);
+            } catch (\PDOException $e) {
+                $message = $e->getMessage();
+                if (empty($message)) {
+                    $message = "Connect database failed";
+                }
+                throw new \Exception($message, $e->getCode());
             }
-            $this->_conn = Container::load($objName);
+        }
+
+        public function from($name)
+        {
+            $this->_from = $name;
         }
 
         /**
-         * 条件
-         * @param array $where
+         * 条件语句
+         * @param $where
          */
-        public function where(array $where)
+        public function where($where, $bind, $n = 1)
         {
-            if (empty($where)) {
-                return;
+            $this->_where[] = $where;
+            if (is_array($bind)) {
+                $this->_binds = array_merge($this->_binds, $bind);
+            } else {
+                for ($i = 1; $i <= $n; $i++) {
+                    $this->_binds[] = $bind;
+                }
             }
-            $this->_where = array_merge($this->_where, $where);
             return $this;
         }
 
         /**
-         * between语句
-         * @param array $between
+         * 连表查询
+         * @param Model $model
+         * @param string $on
          */
-        public function between(array $between)
+        public function join(Model $model, $on)
         {
-            if (empty($between)) {
-                return;
-            }
-            $this->_between = array_merge($this->_between, $between);
+            $this->_join[$model] = $on;
             return $this;
         }
 
@@ -121,15 +148,13 @@ namespace thinker {
          * 根据主键查询最新一条记录
          * @param array $where
          */
-        public function latest($primaryKey = "")
+        public function latest($pkValue = "")
         {
             if (empty($primaryKey)) {
                 $this->first();
                 return;
             }
-            $this->_where([
-                $this->_primaryKey => ["=", $primaryKey]
-            ]);
+            $this->_where($this->_primaryKey . "=?", $pkValue);
             return $this->select("*");
         }
 
@@ -169,21 +194,21 @@ namespace thinker {
          * 排序
          * @param $by
          */
-        public function orderBy(array $by)
+        public function orderBy($by)
         {
             if (empty($by)) {
                 return;
             }
-            $this->_orderBy = array_merge($this->_orderBy, $by);
+            $this->_orderBy[] = $by;
             return $this;
         }
 
-        private function buildSql()
+        private function structured()
         {
             $where = "";
             foreach ($this->_where as $field => $item) {
                 $bound = " AND ";
-                $this->binds[] = $item[1];
+                $this->_binds[] = $item[1];
                 if (isset($item[2])) {
                     $bound = $item[2];
                 }
@@ -191,8 +216,8 @@ namespace thinker {
             }
             foreach ($this->_between as $field => $item) {
                 $where .= " AND " . $field . " BETWEEN ? AND ?";
-                $this->binds[] = $item[0];
-                $this->binds[] = $item[1];
+                $this->_binds[] = $item[0];
+                $this->_binds[] = $item[1];
             }
             if (!empty($where)) {
                 $where = " WHERE " . ltrim($where, "AND");
@@ -218,7 +243,13 @@ namespace thinker {
             if (!empty($this->_page)) {
                 $limit = intval($this->_page * $limit) . "," . intval($limit);
             }
-            return $where . " " . $orderBy . " " . $groupBy . " LIMIT " . $limit;
+            $innerJoin = "";
+            if (!empty($this->_join)) {
+                foreach ($this->_join as $model => $on) {
+                    $innerJoin .= " INNER JOIN " . $model->getTableName() . " ON " . $on;
+                }
+            }
+            return $innerJoin . $where . " " . $orderBy . " " . $groupBy . " LIMIT " . $limit;
         }
 
 
@@ -257,7 +288,7 @@ namespace thinker {
                 $sets .= $field . "=?,";
             }
             $sets = trim($sets, ",");
-            $sql = "UPDATE " . $this->getTableName() . " SET " . $sets . " WHERE " . $this->buildSql();
+            $sql = "UPDATE " . $this->getTableName() . " SET " . $sets . " WHERE " . $this->structured();
             $this->_binds = array_merge($binds, $this->_binds);
             $result = $this->query($sql);
             return $result->rowCount();
@@ -269,7 +300,7 @@ namespace thinker {
          */
         public function delete()
         {
-            $sql = "DELETE FROM " . $this->getTableName() . $this->buildSql();
+            $sql = "DELETE FROM " . $this->getTableName() . $this->structured();
             $result = $this->query($sql);
             return $result->rowCount();
         }
@@ -282,14 +313,14 @@ namespace thinker {
          */
         public function select($colunms = "*")
         {
-            $sql = "SELECT " . $colunms . " FROM " . $this->getTableName() . $this->buildSql();
+            $sql = "SELECT " . $colunms . " FROM " . $this->getTableName() . $this->structured();
             $result = $this->query($sql);
             return $result->fetchAll();
         }
 
         public function first()
         {
-            $sql = "SELECT " . $this->_colunms . " FROM " . $this->getTableName() . $this->buildSql();
+            $sql = "SELECT " . $this->_colunms . " FROM " . $this->getTableName() . $this->structured();
             $result = $this->query($sql);
             return $result->fetch();
         }
@@ -365,6 +396,9 @@ namespace thinker {
          */
         public function getTableName()
         {
+            if ($this->_from) {
+                return $this->_table . " AS " . $this->_from;
+            }
             return $this->_table;
         }
     }
