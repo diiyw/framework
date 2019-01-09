@@ -2,86 +2,43 @@
 
 namespace thinker {
 
-    class Request
+    class Http
     {
-        public
 
-            /**
-             * 请求IP
-             * @var string
-             */
-            $clientIP,
 
-            /**
-             * USER_AGENT
-             * @var string
-             */
-            $userAgent,
+        /**
+         * 请求IP
+         * @var string
+         */
+        public $clientIP;
 
-            /**
-             * PATH_INFO
-             * @var string
-             */
-            $pathInfo,
+        /**
+         * USER_AGENT
+         * @var string
+         */
+        public $userAgent;
 
-            /**
-             * 请求模块
-             * @var string
-             */
-            $module,
+        /**
+         * 请求方法
+         * @var string
+         */
+        public $method;
 
-            /**
-             * 请求控制器
-             * @var string
-             */
-            $controller,
+        /**
+         * 来源
+         * @var string
+         */
+        public $referer;
 
-            /**
-             * 请求动作
-             * @var string
-             */
-            $action,
-
-            /**
-             * 请求方法
-             * @var string
-             */
-            $method,
-
-            /**
-             * 来源
-             * @var string
-             */
-            $referer,
-
-            /**
-             * 请求时间
-             * @var string
-             */
-            $requestTime,
-
-            /**
-             * ROOT目录
-             * @var string
-             */
-            $rootPath,
-
-            /**
-             * 站点目录
-             * @var string
-             */
-            $publicPath,
-
-            /**
-             * 应用目录
-             * @var string
-             */
-            $projectPath;
+        /**
+         * 请求时间
+         * @var string
+         */
+        public $requestTime;
 
 
         public function __construct()
         {
-            $this->parseUri();
             $this->userAgent = $_SERVER["HTTP_USER_AGENT"] ?? "PHP_CLI";
             $this->clientIP = $this->clientIPAddress();
             $this->method = $_SERVER["REQUEST_METHOD"] ?? "CLI_GET";
@@ -89,10 +46,6 @@ namespace thinker {
                 $this->referer = $_SERVER["HTTP_REFERER"];
             }
             $this->requestTime = $_SERVER["REQUEST_TIME"];
-            $wwwPath = empty($_SERVER["DOCUMENT_ROOT"]) ? $_SERVER["PWD"] : $_SERVER["DOCUMENT_ROOT"];
-            $this->rootPath = dirname($wwwPath);
-            $this->publicPath = $wwwPath;
-            $this->projectPath = $this->rootPath . "/app";
         }
 
         /**
@@ -112,38 +65,6 @@ namespace thinker {
         public function redirect($target = "/")
         {
             header("Location: " . $target);
-        }
-
-        /**
-         * 解析PATH_INFO
-         */
-        public function parseUri()
-        {
-            if (isset($_SERVER["REQUEST_URI"])) {
-                $uri = explode("/", explode("?", trim($_SERVER["REQUEST_URI"], "/"))[0]);
-            } else {
-                $uri = array_slice($_SERVER["argv"], 1);
-            }
-            $this->pathInfo = join("/", $uri);
-            $this->module = array_shift($uri);
-            if (!$this->module) {
-                $this->module = "home";
-            }
-            $this->controller = array_shift($uri);
-            if (!$this->controller) {
-                $this->controller = "Index";
-            }
-            $this->action = array_shift($uri);
-            if (!$this->action) {
-                $this->action = "view";
-            }
-            //多余PATH_INFO解析为get请求参数
-            foreach ($uri as $k => $v) {
-                if (isset($uri[$k + 1])) {
-                    $_REQUEST[$v] = $_GET[$v] = $uri[$k + 1];
-                    unset($uri[$k + 1]);
-                }
-            }
         }
 
         /**
@@ -350,6 +271,61 @@ namespace thinker {
         {
             session_destroy();
         }
+
+        /**
+         * 设置响应HTTP代码
+         * @param $code
+         */
+        public function code($code)
+        {
+            http_response_code($code);
+        }
+
+        /**
+         * 推送一个文件
+         * @param $file
+         * @param $dlName
+         * @param int $speed
+         */
+        public function send($file, $dlName, $speed = 128)
+        {
+            if (file_exists($file) && is_file($file)) {
+                header('Cache-control: private');
+                header('Content-Type: application/octet-stream');
+                header("Accept-Ranges:bytes");
+                header('Content-Length: ' . filesize($file));
+                header('Content-Disposition: attachment; filename=' . $dlName);
+                header('Content-Transfer-Encoding: binary');
+                flush();
+                $fh = fopen($file, "r");
+                while (!feof($fh)) {
+                    echo fread($fh, round($speed * 1024));
+                    flush();
+                    sleep(1);
+                }
+                fclose($fh);
+            }
+        }
+
+        /**
+         * 输出JSON格式数据
+         * @param array $data
+         */
+        public function json(array $data)
+        {
+            header("Content-Type:application/json;charset:utf-8");
+            echo json_encode($data);
+            exit(0);
+        }
+
+        /**
+         * 抛出错误
+         * @param $error
+         * @throws \Exception
+         */
+        public function error($error)
+        {
+            throw new \Exception($error);
+        }
     }
 }
-

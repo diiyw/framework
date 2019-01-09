@@ -92,14 +92,18 @@ namespace thinker {
 
         /**
          * 渲染模板文件
-         * @param $action
+         * @param string $action
          * @param array $vars
          */
-        public function display($action, array $vars = [])
+        public function display($action = "", array $vars = [])
         {
+
+            if (empty($action)) {
+                $action = strtolower(Container::load("request")->controller);
+            }
             $file = $this->theme . DIRECTORY_SEPARATOR .
                 strtolower(Container::load("request")->module) . DIRECTORY_SEPARATOR .
-                strtolower(Container::load("request")->controller) . ".phtml";
+                $action . ".html";
             $source = $this->path . DIRECTORY_SEPARATOR . $file;
             $cache = $this->cache . DIRECTORY_SEPARATOR . $file;
             if (file_exists($source)) {

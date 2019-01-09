@@ -4,7 +4,6 @@ namespace thinker {
 
     class Crypt
     {
-
         /**
          * 加密字符串
          * @param string $data 字符串

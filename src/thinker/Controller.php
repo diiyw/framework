@@ -4,111 +4,121 @@ namespace thinker {
 
     class Controller
     {
-        protected $errorCode = 0;
-
-        protected $message = "Invalid request";
-
         /**
+         * 模块Rule
          * @var array
          */
         protected $rules;
 
         /**
-         * @var Request
+         * @var Plugin
          */
-        protected $request;
-
+        protected $plugin;
 
         /**
-         * @var Response
+         * @var Http
          */
-        protected $respnose;
+        protected $http;
+
+        /**
+         * @var View
+         */
+        protected $view;
+
+        public $errorCode = 200;
+
+        public $message = "success";
+
+        /**
+         * 表单数据
+         * @var array
+         */
+        protected $formData;
 
         /**
          * Controller constructor.
          */
         public function __construct()
         {
-            $this->rules = Container::loadConfig("rules");
-            $this->request = Container::load("request");
-            $this->response = Container::load("response");
+            // 初始化
+            $this->http = new Http();
+            $this->plugin = new Plugin();
+            $this->view = new View();
+            $this->rules = App::loadConfig("rules");
+            // 启动插件
+            $this->plugin->load(App::$projectPath . "/plugins");
+            $this->plugin->beforeDispatch();
+            $filter = App::$module . "\\filter\\" . ucfirst(App::$controller);
             try {
-                if ($this->request->isAjax()) {
+                if ($this->http->isAjax()) {
                     $resp = [];
-                    $action = ucfirst($this->request->action);
                     header("Content-Type:application/json;charset:utf-8");
                     switch ($_SERVER["REQUEST_METHOD"]) {
                         case "GET":
+                            $filter = new $filter($this->http->get());
+                            if ($error = $filter->error() && !empty($error)) {
+                                $this->error(1000, $error);
+                            }
+                            $this->formData = $filter->data;
                             $resp = $this->get();
                             break;
                         case "POST":
+                            $filter = new $filter($this->http->post());
+                            if ($error = $filter->error() && !empty($error)) {
+                                $this->error(1000, $error);
+                            }
+                            $this->formData = $filter->data;
                             $resp = $this->post();
                             break;
                         case "PUT":
+                            $filter = new $filter($this->http->put());
+                            if ($error = $filter->error() && !empty($error)) {
+                                $this->error(1000, $error);
+                            }
+                            $this->formData = $filter->data;
                             $resp = $this->put();
                             break;
                         case "DELETE":
+                            $filter = new $filter($this->http->delete());
+                            if ($error = $filter->error() && !empty($error)) {
+                                $this->error(1000, $error);
+                            }
+                            $this->formData = $filter->data;
                             $resp = $this->delete();
-                            $this->errorCode = 500;
                             break;
                         default:
-                            $this->message = "Unsupported method";
+                            $this->errorCode = 404;
+                            $this->message = "未知错误";
                     }
-                    if ($this->errorCode != 0) {
+                    if ($this->errorCode != 200) {
                         $this->error($this->errorCode, $this->message);
                     }
                     $this->success($resp);
                 }
-                $this->{$this->request->action}();
+                $this->view();
             } catch (\Exception $e) {
-                if ($this->request->isAjax()) {
-                    $this->_AjaxException($e);
+                if ($this->http->isAjax()) {
+                    $this->_ajaxException($e);
                 }
-                $this->_ThinkerException($e);
+                $this->_thinkerException($e);
             }
-        }
-
-        /**
-         * 加载容器中的对象
-         * @param $obj
-         * @return Request|Response|View
-         */
-        public function load($obj)
-        {
-            return Container::load($obj);
         }
 
         /**
          * 错误json输出
          * @param $code
          * @param $message
+         * @throws \Exception
          */
         public function error($code, $message)
         {
-            if ($this->request->isAjax()) {
-                Container::load("response")->json(array(
+            if ($this->http->isAjax()) {
+                $this->http->json(array(
                     "code" => $code,
                     "message" => $message,
                 ));
-
             }
             throw new \Exception($message, $code);
-        }
-
-        /**
-         * 应用过滤器获取表单数据
-         * @param $rule
-         * @param string $key
-         * @return array|string
-         * @throws \Exception
-         */
-        public function filter($rule, $key = "")
-        {
-            if (!isset($this->rules[$rule])) {
-                return $request->data($key);
-            }
-            $filter = new Filter($this->request, $this->rules[$rule]);
-            return $filter->data($key);
         }
 
         /**
@@ -117,7 +127,7 @@ namespace thinker {
          */
         public function success($data)
         {
-            Container::load("response")->json(array(
+            $this->http->json(array(
                 "code" => 200,
                 "result" => $data,
             ));
@@ -126,8 +136,9 @@ namespace thinker {
         /**
          * 表单错误处理，可以被重写自动定义处理方式
          * @param \Exception $exception
+         * @throws \Exception
          */
-        public function _AjaxException(\Exception $exception)
+        public function _ajaxException(\Exception $exception)
         {
             if ($exception->getCode() > 10000) {
                 $this->error($exception->getCode(), $exception->getMessage());
@@ -137,8 +148,10 @@ namespace thinker {
 
         /**
          * 业务错误处理，可以被重写自动定义处理方式
+         * @param \Exception $exception
+         * @throws \Exception
          */
-        public function _ThinkerException(\Exception $exception)
+        public function _thinkerException(\Exception $exception)
         {
             throw $exception;
         }

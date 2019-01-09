@@ -21,8 +21,9 @@
     },
     "require": {
         "php": ">=7.0.0",
-        "ext-json":"*"
-
+        "ext-json":"*",
+        "ext-pdo": "*",
+        "catfan/medoo": "^1.6"
     },
     "bin": ["bin/thinker"]
 }
