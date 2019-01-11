@@ -17,8 +17,8 @@ namespace thinker {
          */
         public function __construct()
         {
-            $this->cache = Container::load("request")->publicPath . "/cache";
-            $this->path = Container::load("request")->rootPath . "/views";
+            $this->cache = App::$publicPath . "/cache";
+            $this->path = App::$rootPath . "/views";
             //注册模板标签
             $this->labels = [
                 "@{if (.+?)}@" => function ($match) {
@@ -99,10 +99,10 @@ namespace thinker {
         {
 
             if (empty($action)) {
-                $action = strtolower(Container::load("request")->controller);
+                $action = strtolower(App::$controller);
             }
             $file = $this->theme . DIRECTORY_SEPARATOR .
-                strtolower(Container::load("request")->module) . DIRECTORY_SEPARATOR .
+                strtolower(App::$module) . DIRECTORY_SEPARATOR .
                 $action . ".html";
             $source = $this->path . DIRECTORY_SEPARATOR . $file;
             $cache = $this->cache . DIRECTORY_SEPARATOR . $file;

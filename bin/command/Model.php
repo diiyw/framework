@@ -7,14 +7,15 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use thinker\App;
 use thinker\Container;
 
 class Model extends Command
 {
     public function configure()
     {
-        $this->setName("model")->setDescription("Create module models")
-            ->addArgument("name", InputArgument::REQUIRED, "Model name");
+        $this->setName("model")->setDescription("Create thinker's module models")
+            ->addArgument("name", InputArgument::REQUIRED, "The model name");
         $this->addOption(
             "config",
             "c",
@@ -38,11 +39,11 @@ class Model extends Command
         if (!file_exists($config)) {
             throw new \InvalidArgumentException('The database config must be specified');
         }
-        Container::set("dbConfig", include_once $config);
+        App::set("dbConfig", include_once $config);
         $module = $input->getArgument("name");
         // 创建模型
         $model = new \thinker\Model("default");
-        $tables = Container::load("dbConfig")["default"]["tables"];
+        $tables = App::load("dbConfig")["default"]["tables"];
         // 创建所有模型
         foreach ($tables as $table) {
             $modelPath = explode("_", $table);
@@ -84,65 +85,77 @@ class Model extends Command
                     $modelFields[] = "            \"{$column["Field"]}\" => \$this->$field,";
                     // 模型库
                     $fieldName = $column["Field"];
-                    $formField = $this->convertUnderline(ltrim(str_replace($module, "", $fieldName), "_"));
+                    $formField = ucfirst($this->convertUnderline(ltrim(str_replace($module, "", $fieldName), "_")));
                     if (stripos($column["Type"], "int") !== false) {
-                        $conditions .= "\${$formField}Start = \$request->get(\"b_{$formField}_start\");
-        \${$formField}End = \$request->get(\"b_{$formField}_end\");
-        if (\${$formField}End && \${$formField}Start) {
-            \$this->between([\"$fieldName\" => [\${$formField}Start, \${$formField}End]]);
+                        $conditions .= "\$b{$formField} = \$formData[\"b_{$formField}\"] ?? [];
+        if (\$b{$formField}) {
+            \$this->where([\"{$fieldName}[<>]\" =>\$b{$formField}]);
         }
-        \$$formField = \$request->get(\"p_$formField\");
-        if (\${$formField}) {
+        \$e$formField = \$formData[\"e_$formField\"] ?? \"\";
+        if (\$e{$formField}) {
             \$this->where([
-                \"$fieldName\" => [\"=\", \${$formField}]
+                \"{$fieldName}[=]\" => \$e$formField,
             ]);
         }
-        \${$formField}More = \$request->get(\"m_$formField\");
-        if (\${$formField}More) {
+        \$mt{$formField} = \$formData[\"mt_$formField\"] ?? \"\";
+        if (\$mt{$formField}) {
             \$this->where([
-                \"$fieldName\" => [\">\", \${$formField}More]
+                \"{$fieldName}[>]\" => \${$formField},
             ]);
         }
-        \${$formField}Mq = \$request->get(\"mq_$formField\");
-        if (\${$formField}Mq) {
+        \$mq{$formField} = \$formData\[\"mq_$formField\"\] ?? \"\";
+        if (\$mq{$formField}) {
             \$this->where([
-                \"$fieldName\" => [\">=\", \${$formField}Mq]
+                \"{$fieldName}[>=]\" => \$mq{$formField},
             ]);
         }
-        \${$formField}Less = \$request->get(\"l_$formField\");
-        if (\${$formField}Less) {
+        \$l{$formField} = \$formData[\"l_$formField\"] ?? \"\";
+        if (\$l{$formField}) {
             \$this->where([
-                \"$fieldName\" => [\"<\", \${$formField}Less]
+                \"{$fieldName}[<]\" =>\$l{$formField},
             ]);
         }
-        \${$formField}Lq = \$request->get(\"lq_$formField\");
-        if (\${$formField}Lq) {
+        \$lq{$formField}Lq = \$formData[\"lq_$formField\"] ?? \"\";
+        if (\$lq{$formField}) {
             \$this->where([
-                \"$fieldName\" => [\"<=\", \${$formField}Lq]
+                \"{$fieldName}[<=]\" =>\$lq{$formField}
             ]);
         }
         ";
                     }
                     if (stripos($column["Type"], "varchar") !== false) {
-                        $conditions .= "\$$formField = \$request->get(\"p_$formField\");
-        if (\${$formField}) {
+                        $conditions .= "\$e$formField = \$formData[\"e_$formField\"] ?? \"\";
+        if (\$e{$formField}) {
             \$this->where([
-                \"$fieldName\" => [\"=\", \${$formField}]
+                \"{$fieldName}[=]\" => \$e{$formField},
             ]);
         }
-        \$$formField = \$request->get(\"f_$formField\");
-        if (\${$formField}) {
+        \$lf$formField = \$formData[\"lf_$formField\"] ?? \"\";
+        if (\$lf{$formField}) {
             \$this->where([
-                \"$fieldName\" => [\"LIKE\", \"%\" . \${$formField} . \"%\"]
+                \"{$fieldName}[~]\" => \"%\" . \$lf{$formField},
+            ]);
+        }
+        \$rf$formField = \$formData[\"rf_$formField\"] ?? \"\";
+        if (\$rf{$formField}) {
+            \$this->where([
+                \"{$fieldName}[~]\" => \$rf{$formField}.\"%\",
+            ]);
+        }
+        \$ff$formField = \$formData[\"ff_$formField\"] ?? \"\";
+        if (\$rf{$formField}) {
+            \$this->where([
+                \"{$fieldName}[~]\" => \"%\".\$ff{$formField}.\"%\",
             ]);
         }
         ";
                     }
                     if ($column["Type"] == "datetime") {
-                        $conditions .= "\${$formField}Start = \$request->get(\"b_{$formField}_start\");
-        \${$formField}End = \$request->get(\"b_{$formField}_end\");
-        if (\${$formField}End && \${$formField}Start) {
-            \$this->between([\"$fieldName\" => [\${$formField}Start, \${$formField}End]]);
+                        $conditions .= "\$b{$formField} = \$formData[\"b_{$formField}\"] ?? \"\";
+        if (\$b{$formField}) {
+            \$this->where(
+                [\"{$fieldName}[<>]\" => \$b{$formField}
+            ]);
         }
         ";
                     }
@@ -170,19 +183,17 @@ $modelFields
     
     /**
      * 获取多条记录
-     * @param Request \$request
+     * @param aray \$fromData
      * @return array|mixed
      */
-    public function getList(Request \$request)
+    public function getList(\$fromData)
     {
-        \$this->filterParams(\$request);
-        \$page = \$request->get("page",1);
-        \$this->page(\$page);
-        return \$this->select();
+        
     }
 
     /**
      * 插入一条记录
+     * @param aray \$fromData
      * @return int
      */
     public function create()
@@ -195,7 +206,7 @@ $modelFields
      * @param Request \$request
      * @return array|mixed
      */
-    public function getLast(Request \$request)
+    public function getLast(\$fromData)
     {
         \$this->filterParams(\$request);
         return \$this->first();
@@ -203,9 +214,8 @@ $modelFields
     
     /**
      * 条件构造
-     * @param Request \$request
      */
-    private function filterParams(Request \$request)
+    private function filterParams(\$fromData)
     {
         $conditions
     }

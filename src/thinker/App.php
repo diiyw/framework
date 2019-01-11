@@ -49,7 +49,7 @@ namespace thinker {
         /**
          * Application constructor.
          */
-        public static function Run()
+        public static function run()
         {
             self::parseUri();
             $wwwPath = empty($_SERVER["DOCUMENT_ROOT"]) ? $_SERVER["PWD"] : $_SERVER["DOCUMENT_ROOT"];

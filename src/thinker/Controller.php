@@ -5,12 +5,6 @@ namespace thinker {
     class Controller
     {
         /**
-         * 模块Rule
-         * @var array
-         */
-        protected $rules;
-
-        /**
          * @var Plugin
          */
         protected $plugin;
@@ -44,7 +38,6 @@ namespace thinker {
             $this->http = new Http();
             $this->plugin = new Plugin();
             $this->view = new View();
-            $this->rules = App::loadConfig("rules");
             // 启动插件
             $this->plugin->load(App::$projectPath . "/plugins");
             $this->plugin->beforeDispatch();

@@ -42,8 +42,8 @@ class Library extends Command
         if (!file_exists($config)) {
             throw new \InvalidArgumentException('The database config must be specified');
         }
-        Container::set("dbConfig", include_once $config);
-        $tables = Container::load("dbConfig")[$database]["tables"];
+        App::set("dbConfig", include_once $config);
+        $tables = App::load("dbConfig")[$database]["tables"];
         // 创建模型库
         foreach ($tables as $table) {
             $modelPath = explode("_", $table);
@@ -64,7 +64,6 @@ class Library extends Command
             $moduleLibrary = <<<LIB
 <?php
 $namespace
-use thinker\Container;
 
 class {$name}Lib
 {
@@ -74,17 +73,10 @@ class {$name}Lib
     * @var \\$var_namespace$modelName;
     */
     private \$model;
-    
-   /**
-    * 请求对象
-    * @var \\thinker\\Request;
-    */
-    private \$request;
 
     public function __construct()
     {
         \$this->model = new $modelName();
-        \$this->request = Container::load("request");
     }
 }
 LIB;

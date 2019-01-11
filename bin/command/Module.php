@@ -11,15 +11,15 @@ class Module extends Command
 {
     public function configure()
     {
-        $this->setName("module")->setDescription("Create module")
-            ->addArgument("name", InputArgument::REQUIRED, "Module name");
+        $this->setName("module")->setDescription("Create thinker module")
+            ->addArgument("name", InputArgument::REQUIRED, "The module name");
     }
 
     public function execute(InputInterface $input, OutputInterface $output)
     {
         $name = $input->getArgument("name");
         // 创建目录
-        foreach (array("/config", "/model") as $path) {
+        foreach (array("/config", "/model", "/filter") as $path) {
             @mkdir($name . $path, 0777, true);
         }
         $module = ucfirst($name);
@@ -39,7 +39,7 @@ class $module extends Controller
 
     public function index()
     {
-        \$this->response->view("index");
+        \$this->response->view();
     }
 }
 CONTROLLER;
@@ -61,7 +61,6 @@ DB;
             "/config/router.php" => $router,
             "/" . $module . ".php" => $controller,
             "/config/db.php" => $db,
-            "/config/rules.php" => $router,
         ];
         foreach ($files as $path => $content) {
             if (file_exists($lower . $path)) {

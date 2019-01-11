@@ -2,16 +2,13 @@
 
 namespace thinker {
 
-    use Medoo\Medoo;
+    use  Medoo\Medoo;git
 
-    class Model
+    class Model extends Medoo
     {
         private $_name;
 
-        /**
-         * @var Medoo
-         */
-        private $_conn;
+        private $_sql = [];
 
         /**
          * 新建模型
@@ -24,23 +21,26 @@ namespace thinker {
                 $this->_name = $name;
             }
             $objName = "CONN::" . $this->_name;
-            $config = Container::load("dbConfig")[$this->_name];
+            $config = App::load("dbConfig")[$this->_name];
             try {
-                if (!Container::load($objName) instanceof \PDO) {
-                    Container::set($objName, new Medoo(
-                        [
-                            'database_type' => 'mysql',
-                            'database_name' => $config["db_name"],
-                            'server' => $config["host"],
-                            'username' => $config["username"],
-                            'password' => $config["password"],
-
-                            'charset' => 'utf8',
-                            'port' => 3306,
-                        ]
-                    ));
+                try {
+                    if (!App::load($objName) instanceof \PDO) {
+                        App::set($objName, new \PDO(
+                            $config['dsn'], $config['user'], $config['password'],
+                            [\PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8']
+                        ));
+                    }
+                    parent::__contruct([
+                        "pdo" => App::load($objName),
+                        'database_type' => 'mysql',
+                    ]);
+                } catch (\PDOException $e) {
+                    $message = $e->getMessage();
+                    if (empty($message)) {
+                        $message = "Connect database failed";
+                    }
+                    throw new \Exception($message, $e->getCode());
                 }
-                $this->_conn = Container::load($objName);
             } catch (Exception $e) {
                 $message = $e->getMessage();
                 if (empty($message)) {
@@ -48,6 +48,33 @@ namespace thinker {
                 }
                 throw new \Exception($message, $e->getCode());
             }
+        }
+
+        /**
+         * Where条件拼装
+         * @param $conditions
+         */
+        public function where($conditions)
+        {
+            $this->_sql = array_merge($this->_sql, $conditions);
+        }
+
+        /**
+         * 返回Select结果
+         */
+        public function result($colunms = "*")
+        {
+            return $this->select($this->table, $colunms, $this->_sql);
+        }
+
+        /**
+         * 获取数据库最新的记录
+         */
+        public function getLast($colunms = "*", $limit = 1, $page = 0)
+        {
+            return $this->select($this->table, $colunms, [
+                'LIMIT' => [$page, $limit],
+            ]);
         }
     }
 }
