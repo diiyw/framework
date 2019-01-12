@@ -51,21 +51,19 @@ namespace thinker {
          */
         public static function run()
         {
+            defined("DS") || define("DS", DIRECTORY_SEPARATOR);
             self::parseUri();
             $wwwPath = empty($_SERVER["DOCUMENT_ROOT"]) ? $_SERVER["PWD"] : $_SERVER["DOCUMENT_ROOT"];
             self::$rootPath = dirname($wwwPath);
             self::$publicPath = $wwwPath;
-            self::$projectPath = self::$rootPath . "/app";
+            self::$projectPath = self::$rootPath . DS . "app";
             // 自动加载
-            $modulePath = self::$projectPath . "\modules";
+            $modulePath = self::$projectPath . DS . "modules";
             $includePath = get_include_path();
             $includePath .= PATH_SEPARATOR . $modulePath;
-            $includePath .= PATH_SEPARATOR . $modulePath . DIRECTORY_SEPARATOR . self::$module . "/library";
-            $includePath .= PATH_SEPARATOR . $modulePath . DIRECTORY_SEPARATOR . self::$module . "/model";
             set_include_path($includePath);
             spl_autoload_register(function ($class) {
-                $file = $class . ".php";
-                @include_once $file;
+                @include_once $class . ".php";
             });
             // 执行脚本
             $class = self::$module . "\\" . ucfirst(self::$controller);
@@ -140,7 +138,10 @@ namespace thinker {
                 $module = self::$projectPath . "/modules/" . self::$module;
                 self::$config[$name] = include_once $module . "/config/" . $name . ".php";
             }
-            return isset(self::$config[$name][$key]) ? self::$config[$name][$key] : "";
+            if (!empty($key) && isset(self::$config[$name][$key])) {
+                return self::$config[$name][$key];
+            }
+            return self::$config[$name];
         }
 
         /**

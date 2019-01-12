@@ -46,12 +46,12 @@ namespace thinker {
                     return "<?php endforeach;?>";
                 },
                 "@{import ([a-zA-Z0-9_\\/]*?)}@" => function ($match) {
-                    $file = $this->path . DIRECTORY_SEPARATOR .
-                        $this->theme . DIRECTORY_SEPARATOR .
+                    $file = $this->path . DS .
+                        $this->theme . DS .
                         $match[1] . ".phtml";
                     if (file_exists($file)) {
-                        $cache = strtolower($this->cache . DIRECTORY_SEPARATOR .
-                            $this->theme . DIRECTORY_SEPARATOR .
+                        $cache = strtolower($this->cache . DS .
+                            $this->theme . DS .
                             $match[1] . ".phtml");
                         return $this->compile($cache, $file);
                     }
@@ -101,11 +101,9 @@ namespace thinker {
             if (empty($action)) {
                 $action = strtolower(App::$controller);
             }
-            $file = $this->theme . DIRECTORY_SEPARATOR .
-                strtolower(App::$module) . DIRECTORY_SEPARATOR .
-                $action . ".html";
-            $source = $this->path . DIRECTORY_SEPARATOR . $file;
-            $cache = $this->cache . DIRECTORY_SEPARATOR . $file;
+            $file = $this->theme . DS . strtolower(App::$module) . DS . $action . ".html";
+            $source = $this->path . DS . $file;
+            $cache = $this->cache . DS . $file;
             if (file_exists($source)) {
                 $this->compile($cache, $source);
                 if (is_file($cache)) {

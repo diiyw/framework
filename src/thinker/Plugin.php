@@ -11,7 +11,7 @@ namespace thinker {
             if (is_dir($folder)) {
                 $handle = opendir($folder);
                 while ($file = readdir($handle)) {
-                    $file = $folder . '/' . $file;
+                    $file = $folder . DS . $file;
                     if (is_file($file)) {
                         $pathInfo = pathinfo($file);
                         if ($pathInfo["extension"] == "php") {
