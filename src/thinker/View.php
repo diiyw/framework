@@ -12,6 +12,8 @@ namespace thinker {
 
         protected $cache;
 
+        public $ext = ".phtml";
+
         /**
          * View constructor.
          */
@@ -48,11 +50,11 @@ namespace thinker {
                 "@{import ([a-zA-Z0-9_\\/]*?)}@" => function ($match) {
                     $file = $this->path . DS .
                         $this->theme . DS .
-                        $match[1] . ".phtml";
+                        $match[1] . $this->ext;
                     if (file_exists($file)) {
                         $cache = strtolower($this->cache . DS .
                             $this->theme . DS .
-                            $match[1] . ".phtml");
+                            $match[1] . $this->ext);
                         return $this->compile($cache, $file);
                     }
                 },
@@ -101,7 +103,7 @@ namespace thinker {
             if (empty($action)) {
                 $action = strtolower(App::$controller);
             }
-            $file = $this->theme . DS . strtolower(App::$module) . DS . $action . ".html";
+            $file = $this->theme . DS . strtolower(App::$module) . DS . $action . $this->ext;
             $source = $this->path . DS . $file;
             $cache = $this->cache . DS . $file;
             if (file_exists($source)) {
