@@ -3,20 +3,58 @@
 namespace command;
 
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
 use thinker\App;
+use thinker\Model;
 
 class Create extends Command
 {
     public function configure()
     {
         $this->setName("create")->setDescription("Create thinker framework module");
+        $this->addOption("type", "t", InputArgument::OPTIONAL, "Create thinker model", "all");
+    }
+
+    public function execute(InputInterface $input, OutputInterface $output)
+    {
+        $type = $input->getOption("type");
+        switch ($type) {
+            case "all":
+                $this->create($input, $output);
+                break;
+            case "model":
+                $this->createNewModel($input, $output);
+                break;
+        }
+    }
+
+    public function createNewModel(InputInterface $input, OutputInterface $output)
+    {
+        $helper = $this->getHelper('question');
+        // 模块名称
+        $question = new Question('Please enter module name (default:home):', 'home');
+        $module = $helper->ask($input, $output, $question);
+        $dbConfigFile = $module . "/config/db.php";
+        if (!file_exists($dbConfigFile)) {
+            $output->writeln("<error>Database config file not found</error>");
+            return;
+        }
+        // 需要重建的模型
+        $question = new Question('Please enter model name:');
+        $model = $helper->ask($input, $output, $question);
+        if (empty($model)) {
+            $output->writeln("<error>Model name must specified</error>");
+        }
+        $dbConfig = App::setConfig("db", include_once $dbConfigFile);
+        $dbConfig["default"]["tables"] = [$model];
+        $this->createModelFiles($module, $dbConfig);
     }
 
     // 创建
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function create(InputInterface $input, OutputInterface $output)
     {
         $helper = $this->getHelper('question');
         // 模块名称
@@ -42,7 +80,9 @@ class Create extends Command
         $this->createModuleFiles($module, $dbConfig);
         $dbConfigFile = $module . "/config/db.php";
         // 创建模型
-        $this->createModelFiles($module, $dbConfigFile);
+        // 加载配置
+        $dbConfig = App::setConfig("db", include_once $dbConfigFile);
+        $this->createModelFiles($module, $dbConfig);
         // 创建库文件
         $this->createLibraryFiles($module, $dbTables);
         // 创建过滤器文件
@@ -175,13 +215,11 @@ LIB;
      * @param $dbConfigFile
      * @throws \Exception
      */
-    public function createModelFiles($module, $dbConfigFile)
+    public function createModelFiles($module, $dbConfig)
     {
-        // 加载配置
-        App::set("dbConfig", include_once $dbConfigFile);
         // 创建模型
-        $model = new \thinker\Model("default");
-        $tables = App::load("dbConfig")["default"]["tables"];
+        $model = new \thinker\Model($dbConfig["default"]);
+        $tables = $dbConfig["default"]["tables"];
         // 创建所有模型
         foreach ($tables as $table) {
             $modelPath = explode("_", $table);

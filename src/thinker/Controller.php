@@ -36,11 +36,9 @@ namespace thinker {
         {
             // 初始化
             $this->http = new Http();
-            $this->plugin = new Plugin();
+            $this->plugin = App::load("plugin");
             $this->view = new View();
             // 启动插件
-            $this->plugin->load(App::$projectPath . DS . "plugins");
-            $this->plugin->beforeDispatch();
             $filter = App::$module . "\\" . ucfirst(App::$controller) . "Filter";
             try {
                 if ($this->http->isAjax()) {

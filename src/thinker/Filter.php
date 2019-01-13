@@ -4,17 +4,21 @@ namespace thinker {
 
     class Filter
     {
-        const REQUIRED = "required";
+        const REQUIRED = 1;
 
-        const LENGTH_MAX = "max length";
+        const LENGTH_MAX = 2;
 
-        const LENGTH_MIN = "min length";
+        const LENGTH_MIN = 3;
 
-        const MATCH = "match";
+        const MATCH = 4;
 
-        const COMPARE = "compare";
+        const COMPARE = 5;
 
-        const FUNCTION = "function";
+        const FUNCTION = 6;
+
+        const RENAME = 7;
+
+        const REMOVE = 8;
 
         public $data = array();
 
@@ -47,8 +51,15 @@ namespace thinker {
                                 return;
                             }
                             break;
+                        case self::RENAME:
+                            $name = $params[1];
+                            break;
+                        case self::REMOVE:
+                            unset($this->data[$name]);
+                            break;
                         case self::COMPARE:
-                            if ($value != $params[2]) {
+                            $value2 = $data[$params[1]] ?? $params[1];
+                            if ($value != $value2) {
                                 $this->error = $params[1];
                                 return;
                             }
@@ -60,8 +71,8 @@ namespace thinker {
                             }
                             break;
                         case self::FUNCTION:
-                            if (function_exists($params[2])) {
-                                $value = $params[2]($value);
+                            if (function_exists($params[1])) {
+                                $value = $params[1]($value);
                             }
                             break;
                     }

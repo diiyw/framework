@@ -6,7 +6,7 @@ namespace thinker {
 
     class Model extends Medoo
     {
-        protected $__name = "default";
+        protected $__name = "DEF";
 
         private $_where = [];
 
@@ -15,18 +15,17 @@ namespace thinker {
          * @param string $name
          * @throws \Exception
          */
-        public function __construct($name = "")
+        public function __construct($options = [])
         {
-            if (!empty($name)) {
-                $this->__name = $name;
+            if (empty($options)) {
+                $options = App::loadConfig("db", $this->__name);
             }
             $objName = "CONN::" . $this->__name;
-            $config = App::loadConfig("db", $this->__name);
             try {
                 try {
                     if (!App::load($objName) instanceof \PDO) {
                         App::set($objName, new \PDO(
-                            $config['dsn'], $config['user'], $config['password'],
+                            $options['dsn'], $options['user'], $options['password'],
                             [\PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8']
                         ));
                     }

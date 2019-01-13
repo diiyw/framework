@@ -24,11 +24,6 @@ namespace thinker {
         public static $controller;
 
         /**
-         * 请求动作
-         * @var string
-         */
-        public static $action;
-        /**
          * ROOT目录
          * @var string
          */
@@ -58,13 +53,16 @@ namespace thinker {
             self::$publicPath = $wwwPath;
             self::$projectPath = self::$rootPath . DS . "app";
             // 自动加载
-            $modulePath = self::$projectPath . DS . "modules";
-            $includePath = get_include_path();
-            $includePath .= PATH_SEPARATOR . $modulePath;
-            set_include_path($includePath);
             spl_autoload_register(function ($class) {
-                @include_once $class . ".php";
+                $modulePath = self::$projectPath . DS . "modules" . DS;
+                $file = $modulePath . $class . ".php";
+                if (file_exists($file)) {
+                    include_once $file;
+                }
             });
+            $plugin = App::set("plugin", new Plugin());
+            $plugin->load(self::$projectPath . DS . "plugins");
+            $plugin->beforeDispatch();
             // 执行脚本
             $class = self::$module . "\\" . ucfirst(self::$controller);
             new $class();
@@ -88,10 +86,6 @@ namespace thinker {
             self::$controller = array_shift($uri);
             if (!self::$controller) {
                 self::$controller = "Index";
-            }
-            self::$action = array_shift($uri);
-            if (!self::$action) {
-                self::$action = "view";
             }
             //多余PATH_INFO解析为get请求参数
             foreach ($uri as $k => $v) {
@@ -127,6 +121,19 @@ namespace thinker {
         }
 
         /**
+         * 添加配置项
+         * @param $name
+         * @param $obj
+         * @return Plugin|View|Request|Object
+         */
+        public static function setConfig($name, $config)
+        {
+            $mKey = self::$module . "_" . $name;
+            self::$config[$mKey] = $config;
+            return self::$config[$mKey];
+        }
+
+        /**
          * 加载配置
          * @param $name
          * @param string $key
@@ -134,14 +141,15 @@ namespace thinker {
          */
         public static function loadConfig($name, $key = "")
         {
-            if (!isset(self::$config[$name])) {
+            $mKey = self::$module . "_" . $name;
+            if (!isset(self::$config[$mKey])) {
                 $module = self::$projectPath . "/modules/" . self::$module;
-                self::$config[$name] = include_once $module . "/config/" . $name . ".php";
+                self::$config[$mKey] = include_once $module . "/config/" . $name . ".php";
             }
             if (!empty($key) && isset(self::$config[$name][$key])) {
-                return self::$config[$name][$key];
+                return self::$config[$mKey][$key];
             }
-            return self::$config[$name];
+            return self::$config[$mKey];
         }
 
         /**

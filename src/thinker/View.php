@@ -47,7 +47,7 @@ namespace thinker {
                 "@{fetch}@" => function () {
                     return "<?php endforeach;?>";
                 },
-                "@{import ([a-zA-Z0-9_\\/]*?)}@" => function ($match) {
+                "@{import:([a-zA-Z0-9\$_\/]+)}@" => function ($match) {
                     $file = $this->path . DS .
                         $this->theme . DS .
                         $match[1] . $this->ext;
