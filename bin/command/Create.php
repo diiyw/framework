@@ -123,6 +123,7 @@ DB;
     {
         $name = $module;
         // 创建目录
+        @mkdir($name . "/controller", 0777, true);
         @mkdir($name . "/config", 0777, true);
         $module = ucfirst($name);
         $router = <<<ROUTER
@@ -133,7 +134,7 @@ return array(
 ROUTER;
         $controller = <<<CONTROLLER
 <?php
-namespace $name;
+namespace $name\controller;
 
 use thinker\Controller;
 
@@ -151,7 +152,7 @@ CONTROLLER;
         $lower = strtolower($module);
         $files = [
             "/config/router.php" => $router,
-            "/Index.php" => $controller,
+            "/controller/Index.php" => $controller,
             "/config/db.php" => $dbConfig,
         ];
         foreach ($files as $path => $content) {
@@ -170,6 +171,9 @@ CONTROLLER;
     public function createLibraryFiles($module, $tables)
     {
         $tables = explode(",", $tables);
+        if (empty($tables)) {
+            return;
+        }
         // 创建模型库
         foreach ($tables as $table) {
             $modelPath = explode("_", $table);
@@ -220,6 +224,9 @@ LIB;
         // 创建模型
         $model = new \thinker\Model($dbConfig["default"]);
         $tables = $dbConfig["default"]["tables"];
+        if (empty($tables)) {
+            return;
+        }
         // 创建所有模型
         foreach ($tables as $table) {
             $modelPath = explode("_", $table);
@@ -389,7 +396,7 @@ MODEL;
         $filter = <<<FILTER
 <?php
 
-namespace $module;
+namespace $module\controller;
 
 use thinker\Filter;
 
@@ -416,6 +423,6 @@ class IndexFilter extends Filter
     }
 }
 FILTER;
-        file_put_contents($module . "/IndexFilter.php", $filter);
+        file_put_contents($module . "/controller/IndexFilter.php", $filter);
     }
 }

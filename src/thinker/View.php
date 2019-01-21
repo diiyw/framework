@@ -124,6 +124,16 @@ namespace thinker {
         {
             $this->labels[$label] = $callback;
         }
+
+        /**
+         * 方便模板调用库
+         * @param $lib
+         */
+        public function lib($lib)
+        {
+            $lib = str_replace(".", "\\", $lib);
+            return new $lib;
+        }
     }
 }
 

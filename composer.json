@@ -1,29 +1,35 @@
 {
-    "name": "diiyw/thinker",
-    "version": "0.3.2",
-    "description": "A Lightweight framework",
-    "keywords": ["thinker", "framework"],
-    "homepage": "http://github.com/diiyw/thinker",
-    "minimum-stability":"beta",
-    "type": "library",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Cheuk",
-            "email": "zhuohong@live.com",
-            "homepage": "https://my.oschina.net/pokdars"
-        }
-    ],
-    "autoload": {
-        "psr-4": {
-            "thinker\\": "src/thinker"
-        }
-    },
-    "require": {
-        "php": ">=7.0.0",
-        "ext-json":"*",
-        "ext-pdo": "*",
-        "catfan/medoo": "^1.6"
-    },
-    "bin": ["bin/thinker"]
+  "name": "diiyw/thinker",
+  "version": "0.3.1",
+  "description": "A Lightweight framework",
+  "keywords": [
+    "thinker",
+    "framework"
+  ],
+  "homepage": "http://github.com/diiyw/thinker",
+  "minimum-stability": "beta",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Cheuk",
+      "email": "zhuohong@live.com",
+      "homepage": "https://my.oschina.net/pokdars"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "thinker\\": "src/thinker"
+    }
+  },
+  "require": {
+    "php": ">=7.0.0",
+    "ext-json": "*",
+    "ext-pdo": "*",
+    "catfan/medoo": "^1.6",
+    "ext-iconv": "*"
+  },
+  "bin": [
+    "bin/thinker"
+  ]
 }

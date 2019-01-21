@@ -2,6 +2,8 @@
 
 namespace thinker {
 
+    use mysql_xdevapi\Exception;
+
     class Controller
     {
         /**
@@ -27,7 +29,7 @@ namespace thinker {
          * 表单数据
          * @var array
          */
-        protected $formData;
+        public $formData;
 
         /**
          * Controller constructor.
@@ -39,40 +41,40 @@ namespace thinker {
             $this->plugin = App::load("plugin");
             $this->view = new View();
             // 启动插件
-            $filter = App::$module . "\\" . ucfirst(App::$controller) . "Filter";
+            $filter = App::$module . "\\controller\\" . ucfirst(App::$controller) . "Filter";
             try {
                 if ($this->http->isAjax()) {
                     $resp = [];
                     header("Content-Type:application/json;charset:utf-8");
                     switch ($_SERVER["REQUEST_METHOD"]) {
                         case "GET":
-                            $filter = new $filter($this->http->get());
-                            if ($error = $filter->error() && !empty($error)) {
-                                $this->error(1000, $error);
+                            $filter = new $filter($this->http->get(), "get");
+                            if ($filter->error()) {
+                                $this->error(1000, $filter->error());
                             }
                             $this->formData = $filter->data;
                             $resp = $this->get();
                             break;
                         case "POST":
-                            $filter = new $filter($this->http->post());
-                            if ($error = $filter->error() && !empty($error)) {
-                                $this->error(1000, $error);
+                            $filter = new $filter($this->http->post(), "post");
+                            if ($filter->error()) {
+                                $this->error(1000, $filter->error());
                             }
                             $this->formData = $filter->data;
                             $resp = $this->post();
                             break;
                         case "PUT":
-                            $filter = new $filter($this->http->put());
-                            if ($error = $filter->error() && !empty($error)) {
-                                $this->error(1000, $error);
+                            $filter = new $filter($this->http->put(), "put");
+                            if ($filter->error()) {
+                                $this->error(1000, $filter->error());
                             }
                             $this->formData = $filter->data;
                             $resp = $this->put();
                             break;
                         case "DELETE":
-                            $filter = new $filter($this->http->delete());
-                            if ($error = $filter->error() && !empty($error)) {
-                                $this->error(1000, $error);
+                            $filter = new $filter($this->http->delete(), "delete");
+                            if ($filter->error()) {
+                                $this->error(1000, $filter->error());
                             }
                             $this->formData = $filter->data;
                             $resp = $this->delete();
@@ -86,6 +88,11 @@ namespace thinker {
                     }
                     $this->success($resp);
                 }
+                $filter = new $filter($this->http->get(), "view");
+                if ($filter->error()) {
+                    throw new \Exception($filter->error(), 1000);
+                }
+                $this->formData = $filter->data;
                 $this->view();
             } catch (\Exception $e) {
                 if ($this->http->isAjax()) {
@@ -116,10 +123,10 @@ namespace thinker {
          * 成功json输出
          * @param $data
          */
-        public function success($data)
+        public function success($data, $code = 200)
         {
             $this->http->json(array(
-                "code" => 200,
+                "code" => $code,
                 "result" => $data,
             ));
         }
@@ -131,10 +138,10 @@ namespace thinker {
          */
         public function _ajaxException(\Exception $exception)
         {
-            if ($exception->getCode() > 10000) {
+            if ($exception->getCode() > 1000) {
                 $this->error($exception->getCode(), $exception->getMessage());
             }
-            $this->error(500, "error occupied");
+            $this->error(500, $exception->getMessage());
         }
 
         /**

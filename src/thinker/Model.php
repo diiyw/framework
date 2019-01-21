@@ -6,7 +6,7 @@ namespace thinker {
 
     class Model extends Medoo
     {
-        protected $__name = "DEF";
+        protected $__name = "default";
 
         private $_where = [];
 
@@ -17,8 +17,11 @@ namespace thinker {
          */
         public function __construct($options = [])
         {
+            $this->table = $this->getTableName();
+            $ns = explode("\\", static::class);
             if (empty($options)) {
-                $options = App::loadConfig("db", $this->__name);
+                $module = array_shift($ns);
+                $options = App::loadConfig($module . ".db", $this->__name);
             }
             $objName = "CONN::" . $this->__name;
             try {
@@ -81,7 +84,12 @@ namespace thinker {
          */
         public function create()
         {
-            $this->insert($this->table, $this->toArray());
+            $data = $this->toArray();
+            unset($data[$this->_primaryKey]);
+            $pdoStmt = $this->insert($this->table, $data);
+            if ($pdoStmt->errorInfo() && $pdoStmt->errorCode() !== "00000") {
+                return Errors::set($pdoStmt->errorInfo(), $pdoStmt->errorCode());
+            }
             return $this->id();
         }
 
@@ -104,8 +112,11 @@ namespace thinker {
          * @param null $where
          * @return array|mixed
          */
-        public function first($join = null, $columns = null)
+        public function first($columns = "*", $join = [])
         {
+            if (empty($join)) {
+                return parent::get($this->table, $columns, $this->_where);
+            }
             return parent::get($this->table, $join, $columns, $this->_where);
         }
 
@@ -116,7 +127,10 @@ namespace thinker {
          */
         public function exist($join = null)
         {
-            return parent::has($this->table, $join, $this->_where);
+            if ($join) {
+                return parent::has($this->table, $join, $this->_where);
+            }
+            return parent::has($this->table, $this->_where);
         }
 
         /**
@@ -172,6 +186,19 @@ namespace thinker {
                 $this->getLast($colunms, $page, $limit);
             }
             return $return;
+        }
+
+        public function getTableName()
+        {
+            if (empty($this->table)) {
+                $table = explode("\\", static::class);
+                if (count($table) == 2) {
+                    array_shift($table);
+                }
+                $this->table = str_replace("Model", "", join("_", $table));
+                $this->table = strtolower($this->table);
+            }
+            return $this->table;
         }
     }
 }

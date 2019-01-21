@@ -24,6 +24,12 @@ namespace thinker {
         public static $controller;
 
         /**
+         * 插件目录
+         * @var string
+         */
+        public static $pluginPath;
+
+        /**
          * ROOT目录
          * @var string
          */
@@ -52,6 +58,7 @@ namespace thinker {
             self::$rootPath = dirname($wwwPath);
             self::$publicPath = $wwwPath;
             self::$projectPath = self::$rootPath . DS . "app";
+            self::$pluginPath = self::$rootPath . DS . "plugin";
             // 自动加载
             spl_autoload_register(function ($class) {
                 $modulePath = self::$projectPath . DS . "modules" . DS;
@@ -60,11 +67,10 @@ namespace thinker {
                     include_once $file;
                 }
             });
-            $plugin = App::set("plugin", new Plugin());
-            $plugin->load(self::$projectPath . DS . "plugins");
-            $plugin->beforeDispatch();
+            Plugin::load(App::$pluginPath);
+            Plugin::beforeDispatch();
             // 执行脚本
-            $class = self::$module . "\\" . ucfirst(self::$controller);
+            $class = self::$module . "\\controller\\" . ucfirst(self::$controller);
             new $class();
         }
 
@@ -126,11 +132,10 @@ namespace thinker {
          * @param $obj
          * @return Plugin|View|Request|Object
          */
-        public static function setConfig($name, $config)
+        public static function setConfig($path, $keyValue)
         {
-            $mKey = self::$module . "_" . $name;
-            self::$config[$mKey] = $config;
-            return self::$config[$mKey];
+            self::$config[$path] = $keyValue;
+            return self::$config[$path];
         }
 
         /**
@@ -139,17 +144,17 @@ namespace thinker {
          * @param string $key
          * @return array|mixed
          */
-        public static function loadConfig($name, $key = "")
+        public static function loadConfig($path, $key = "")
         {
-            $mKey = self::$module . "_" . $name;
-            if (!isset(self::$config[$mKey])) {
-                $module = self::$projectPath . "/modules/" . self::$module;
-                self::$config[$mKey] = include_once $module . "/config/" . $name . ".php";
+            list($module, $filename) = explode(".", $path);
+            if (!isset(self::$config[$path])) {
+                $module = self::$projectPath . "/modules/" . $module;
+                self::$config[$path] = include_once $module . "/config/" . $filename . ".php";
             }
-            if (!empty($key) && isset(self::$config[$name][$key])) {
-                return self::$config[$mKey][$key];
+            if (!empty($key) && isset(self::$config[$path][$key])) {
+                return self::$config[$path][$key];
             }
-            return self::$config[$mKey];
+            return self::$config[$path];
         }
 
         /**
@@ -163,6 +168,16 @@ namespace thinker {
                 return null;
             }
             return self::$objects[$name];
+        }
+
+        /**
+         * 监听事件
+         * @param $name
+         * @param $data
+         */
+        public function listen($name, $data)
+        {
+
         }
     }
 }
