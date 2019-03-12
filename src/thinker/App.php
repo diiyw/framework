@@ -47,7 +47,7 @@ namespace thinker {
          */
         public static $projectPath;
 
-        protected static $plugins;
+        protected static $plugins = [];
 
         /**
          * Application constructor.

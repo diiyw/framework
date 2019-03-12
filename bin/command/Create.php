@@ -37,18 +37,20 @@ class Create extends Command
         // 模块名称
         $question = new Question('Please enter module name (default:home):', 'home');
         $module = $helper->ask($input, $output, $question);
-        $dbConfigFile = $module . "/config/db.php";
-        if (!file_exists($dbConfigFile)) {
+        $const = $module . "\\" . ucfirst($module) . "Const";
+        $constFile = $const . ".php";
+        if (!file_exists($constFile)) {
             $output->writeln("<error>Database config file not found</error>");
             return;
         }
+        require_once $constFile;
         // 需要重建的模型
         $question = new Question('Please enter model name:');
         $model = $helper->ask($input, $output, $question);
         if (empty($model)) {
             $output->writeln("<error>Model name must specified</error>");
         }
-        $dbConfig = App::setConfig("db", include_once $dbConfigFile);
+        $dbConfig = $const::DB_CONFIG;
         $dbConfig["default"]["tables"] = [$model];
         $this->createModelFiles($module, $dbConfig);
     }
@@ -77,13 +79,13 @@ class Create extends Command
         $dbTables = $helper->ask($input, $output, $question);
         // 创建模块
         $this->createModuleFiles($module);
+        // 创建过滤器文件
+        $this->createFilterFiles($module);
         $const = $this->buildConstFile($module, $dbName, $dbHost, $dbUser, $dbPwd, $dbTables);
         // 创建模型
         $this->createModelFiles($module, $const::DB_CONFIG);
         // 创建库文件
         $this->createLibraryFiles($module, $dbTables);
-        // 创建过滤器文件
-        $this->createFilterFiles($module);
     }
 
     /**
@@ -104,7 +106,8 @@ class Create extends Command
 <?php
 namespace $module;
 
-class {$fModule}Const {
+class {$fModule}Const
+{
     
     const DB_CONFIG = array(
         "default" => [
@@ -146,7 +149,7 @@ class Index extends Controller
 
     public function view()
     {
-        \$this->view->display();
+        \$this->view->display("$module\index");
     }
 }
 CONTROLLER;
