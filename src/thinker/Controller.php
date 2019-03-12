@@ -2,15 +2,8 @@
 
 namespace thinker {
 
-    use mysql_xdevapi\Exception;
-
     class Controller
     {
-        /**
-         * @var Plugin
-         */
-        protected $plugin;
-
         /**
          * @var Http
          */
@@ -38,15 +31,20 @@ namespace thinker {
         {
             // 初始化
             $this->http = new Http();
-            $this->plugin = App::load("plugin");
             $this->view = new View();
-            // 启动插件
-            $filter = App::$module . "\\controller\\" . ucfirst(App::$controller) . "Filter";
+        }
+
+        //执行
+        public function resolve()
+        {
+            // 表单过滤
+            $filter = static::class . "Filter";
             try {
                 if ($this->http->isAjax()) {
                     $resp = [];
                     header("Content-Type:application/json;charset:utf-8");
-                    switch ($_SERVER["REQUEST_METHOD"]) {
+                    switch ($this->http->method) {
+                        case "CLI_GET":
                         case "GET":
                             $filter = new $filter($this->http->get(), "get");
                             if ($filter->error()) {

@@ -21,7 +21,8 @@ namespace thinker {
             $ns = explode("\\", static::class);
             if (empty($options)) {
                 $module = array_shift($ns);
-                $options = App::loadConfig($module . ".db", $this->__name);
+                $moduleConst = $module . "\\" . ucfirst($module) . "Const";
+                $options = null !== $moduleConst::DB_CONFIG ? $moduleConst::DB_CONFIG[$this->__name] : [];
             }
             $objName = "CONN::" . $this->__name;
             try {
@@ -59,6 +60,7 @@ namespace thinker {
         public function where($conditions)
         {
             $this->_where = array_merge($this->_where, $conditions);
+            return $this;
         }
 
         /**
@@ -72,11 +74,13 @@ namespace thinker {
         /**
          * 获取数据库最新的记录
          */
-        public function getLast($colunms = "*", $page = 0, $limit = 10)
+        public function getLast($join = null, $colunms = null, $page = 0, $limit = 10)
         {
-            $sql["LIMIT"] = [$page * $limit, $limit];
-            $sql["AND"] = $this->_where;
-            return $this->select($this->table, $colunms, $sql);
+            $this->_where["LIMIT"] = [($page - 1) * $limit, $limit];
+            if ($join) {
+                return $this->select($this->table, $join, $colunms, $this->_where);
+            }
+            return $this->select($this->table, $colunms, $this->_where);
         }
 
         /**
@@ -156,7 +160,7 @@ namespace thinker {
          */
         public function change($data)
         {
-            $result = $this->update($data, $this->_where);
+            $result = $this->update($this->table, $data, $this->_where);
             if (empty($this->_where)) {
                 return Errors::set("Not allow to update all data", "-1");
             }
@@ -173,9 +177,13 @@ namespace thinker {
          * @param int $limit
          * @return array
          */
-        public function getList($colunms = "*", $page = 0, $limit = 10)
+        public function getList($join = null, $colunms = "*", $page = 0, $limit = 10)
         {
-            $total = $this->count($this->table, "1");
+            $colunm = $colunms;
+            if (is_array($colunms)) {
+                $colunm = $colunms[0];
+            }
+            $total = $this->count($this->table, $join, $colunm, $this->_where);
             $return = [
                 "list" => [],
                 "total" => $total,
@@ -183,19 +191,23 @@ namespace thinker {
                 "totalPage" => ceil($total / $limit),
             ];
             if ($total > 0) {
-                $this->getLast($colunms, $page, $limit);
+                $return["list"] = $this->getLast($join, $colunms, $page, $limit);
             }
             return $return;
         }
 
+        /**
+         * 获取数据库表名，可以被重写做分表操作
+         * @return mixed|string
+         */
         public function getTableName()
         {
             if (empty($this->table)) {
-                $table = explode("\\", static::class);
-                if (count($table) == 2) {
+                $table = explode("\\", str_replace("model", "", strtolower(static::class)));
+                if (count($table) == 2 && $table[0] == strtolower($table[1])) {
                     array_shift($table);
                 }
-                $this->table = str_replace("Model", "", join("_", $table));
+                $this->table = join("_", $table);
                 $this->table = strtolower($this->table);
             }
             return $this->table;

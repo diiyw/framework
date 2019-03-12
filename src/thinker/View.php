@@ -47,7 +47,11 @@ namespace thinker {
                 "@{fetch}@" => function () {
                     return "<?php endforeach;?>";
                 },
-                "@{import:([a-zA-Z0-9\$_\/]+)}@" => function ($match) {
+                "@{import ([a-zA-Z0-9_\/]+)(?:\sfrom\s|)(.*?)}@" => function ($match) {
+                    if (!empty($match[2])) {
+                        $this->theme = $match[2];
+                        $this->path = App::$rootPath . "/views";
+                    }
                     $file = $this->path . DS .
                         $this->theme . DS .
                         $match[1] . $this->ext;
@@ -97,13 +101,9 @@ namespace thinker {
          * @param string $action
          * @param array $vars
          */
-        public function display($action = "", array $vars = [])
+        public function display($controller, array $vars = [])
         {
-
-            if (empty($action)) {
-                $action = strtolower(App::$controller);
-            }
-            $file = $this->theme . DS . strtolower(App::$module) . DS . $action . $this->ext;
+            $file = $this->theme . DS . $controller . $this->ext;
             $source = $this->path . DS . $file;
             $cache = $this->cache . DS . $file;
             if (file_exists($source)) {
@@ -133,6 +133,25 @@ namespace thinker {
         {
             $lib = str_replace(".", "\\", $lib);
             return new $lib;
+        }
+
+        /**
+         * 方便前端hook
+         * @param $name
+         * @param $data
+         */
+        public function hook($name, $data = [])
+        {
+            App::hook($name, $data);
+        }
+
+        /**
+         * 设置模板目录
+         * @param string $path
+         */
+        public function setPath(string $path)
+        {
+            $this->path = $path;
         }
     }
 }

@@ -76,13 +76,10 @@ class Create extends Command
         $question = new Question('Please enter database tables (default is empty):', '');
         $dbTables = $helper->ask($input, $output, $question);
         // 创建模块
-        $dbConfig = $this->getDbConfig($dbName, $dbHost, $dbUser, $dbPwd, $dbTables);
-        $this->createModuleFiles($module, $dbConfig);
-        $dbConfigFile = $module . "/config/db.php";
+        $this->createModuleFiles($module);
+        $const = $this->buildConstFile($module, $dbName, $dbHost, $dbUser, $dbPwd, $dbTables);
         // 创建模型
-        // 加载配置
-        $dbConfig = App::setConfig("db", include_once $dbConfigFile);
-        $this->createModelFiles($module, $dbConfig);
+        $this->createModelFiles($module, $const::DB_CONFIG);
         // 创建库文件
         $this->createLibraryFiles($module, $dbTables);
         // 创建过滤器文件
@@ -98,20 +95,33 @@ class Create extends Command
      * @param $tables
      * @return string
      */
-    public function getDbConfig($db, $host, $user, $pwd, $tables)
+    public function buildConstFile($module, $db, $host, $user, $pwd, $tables)
     {
         $tables = "\"" . str_replace(",", "\",\"", $tables) . "\"";
-        return <<<DB
+        $tables = $tables == "\"\"" ? "" : $tables;
+        $fModule = ucfirst($module);
+        $const = <<<DB
 <?php
-return array(
-    "default" => [
-        "dsn" => "mysql:dbname=$db;host=$host;charset=utf8",
-        "user" => "$user",
-        "password" => "$pwd",
-        "tables" => [$tables],
-    ],
-);
+namespace $module;
+
+class {$fModule}Const {
+    
+    const DB_CONFIG = array(
+        "default" => [
+            "dsn" => "mysql:dbname=$db;host=$host;charset=utf8",
+            "user" => "$user",
+            "password" => "$pwd",
+            "tables" => [$tables],
+        ],
+    );
+    
+    const ROUTERS = [];
+}
 DB;
+        $constClass = $module . "\\" . $fModule . "Const";
+        file_put_contents($constClass . ".php", $const);
+        require_once $constClass . ".php";
+        return $constClass;
     }
 
     /**
@@ -119,19 +129,12 @@ DB;
      * @param $module
      * @param $dbConfig
      */
-    public function createModuleFiles($module, $dbConfig)
+    public function createModuleFiles($module)
     {
         $name = $module;
         // 创建目录
         @mkdir($name . "/controller", 0777, true);
-        @mkdir($name . "/config", 0777, true);
         $module = ucfirst($name);
-        $router = <<<ROUTER
-<?php
-return array(
-            
-);
-ROUTER;
         $controller = <<<CONTROLLER
 <?php
 namespace $name\controller;
@@ -150,17 +153,11 @@ CONTROLLER;
 
         // 创建文件
         $lower = strtolower($module);
-        $files = [
-            "/config/router.php" => $router,
-            "/controller/Index.php" => $controller,
-            "/config/db.php" => $dbConfig,
-        ];
-        foreach ($files as $path => $content) {
-            if (file_exists($lower . $path)) {
-                continue;
-            }
-            file_put_contents($name . $path, $content);
+        $file = "/controller/Index.php";
+        if (file_exists($lower . $file)) {
+            return;
         }
+        file_put_contents($name . $file, $controller);
     }
 
     /**
