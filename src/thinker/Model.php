@@ -164,10 +164,11 @@ namespace thinker {
             if (empty($this->_where)) {
                 return Errors::set("Not allow to update all data", "-1");
             }
-            if ($result->errorCode !== '00000') {
-                return Errors::set($result->errorInfo(), $result->errorCode);
+            $count = $result->rowCount();
+            if ($result->errorCode() !== '00000') {
+                return Errors::set($result->errorInfo(), $result->errorCode());
             }
-            return true;
+            return $count === 0 ? true : $count;
         }
 
         /**
@@ -177,17 +178,17 @@ namespace thinker {
          * @param int $limit
          * @return array
          */
-        public function getList($join = null, $colunms = "*", $page = 0, $limit = 10)
+        public function getList($join = null, $colunms = null, $page = 0, $limit = 10)
         {
-            $colunm = $colunms;
-            if (is_array($colunms)) {
-                $colunm = $colunms[0];
+            if ($join) {
+                $total = $this->count($this->table, $join, $colunms, $this->_where);
+            } else {
+                $total = $this->count($this->table, $this->_where);
             }
-            $total = $this->count($this->table, $join, $colunm, $this->_where);
             $return = [
                 "list" => [],
                 "total" => $total,
-                "page" => $page,
+                "page" => intval($page),
                 "totalPage" => ceil($total / $limit),
             ];
             if ($total > 0) {

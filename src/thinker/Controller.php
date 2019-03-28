@@ -62,7 +62,7 @@ namespace thinker {
                             $resp = $this->post();
                             break;
                         case "PUT":
-                            $filter = new $filter($this->http->put(), "put");
+                            $filter = new $filter($this->http->input(), "put");
                             if ($filter->error()) {
                                 $this->error(1000, $filter->error());
                             }
@@ -70,7 +70,7 @@ namespace thinker {
                             $resp = $this->put();
                             break;
                         case "DELETE":
-                            $filter = new $filter($this->http->delete(), "delete");
+                            $filter = new $filter($this->http->input(), "delete");
                             if ($filter->error()) {
                                 $this->error(1000, $filter->error());
                             }
@@ -121,12 +121,17 @@ namespace thinker {
          * 成功json输出
          * @param $data
          */
-        public function success($data, $code = 200)
+        public function success($json, $code = 200)
         {
-            $this->http->json(array(
+            $data = array(
                 "code" => $code,
-                "result" => $data,
-            ));
+            );
+            if (is_string($json)) {
+                $data["message"] = $json;
+            } else {
+                $data["result"] = $json;
+            }
+            $this->http->json($data);
         }
 
         /**

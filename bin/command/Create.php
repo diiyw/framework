@@ -335,7 +335,7 @@ LIB;
                     }
                     if ($column["Type"] == "datetime") {
                         $conditions .= "\$b{$formField} = \$formData[\"b_{$formField}\"] ?? \"\";
-        if (\$b{$formField}) {
+        if (!empty(\$b{$formField}[0]) && !empty(\$b{$formField}[1])) {
             \$this->where(
                 [\"{$fieldName}[<>]\" => \$b{$formField}
             ]);

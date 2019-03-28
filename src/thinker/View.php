@@ -153,6 +153,15 @@ namespace thinker {
         {
             $this->path = $path;
         }
+
+        /**
+         * 设置文件后缀
+         * @param string $ext
+         */
+        public function setExtension(string $ext)
+        {
+            $this->ext = $ext;
+        }
     }
 }
 

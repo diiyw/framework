@@ -28,7 +28,7 @@ namespace thinker {
         {
             header("Content-Type:application/json;charset:utf-8");
             exit(json_encode(array(
-                "msg" => $message,
+                "message" => $message,
                 "code" => 100,
                 "flag" => false,
             )));
