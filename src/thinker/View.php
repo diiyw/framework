@@ -56,9 +56,9 @@ namespace thinker {
                         $this->theme . DS .
                         $match[1] . $this->ext;
                     if (file_exists($file)) {
-                        $cache = strtolower($this->cache . DS .
-                            $this->theme . DS .
-                            $match[1] . $this->ext);
+                        $cache = $this->cache . DS . strtolower(
+                                $this->theme . DS .
+                                $match[1] . $this->ext);
                         return $this->compile($cache, $file);
                     }
                 },
@@ -98,11 +98,12 @@ namespace thinker {
 
         /**
          * 渲染模板文件
-         * @param string $action
+         * @param string $controller
          * @param array $vars
          */
         public function display($controller, array $vars = [])
         {
+            $controller = str_replace("\\", DS, $controller);
             $file = $this->theme . DS . $controller . $this->ext;
             $source = $this->path . DS . $file;
             $cache = $this->cache . DS . $file;

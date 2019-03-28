@@ -64,6 +64,7 @@ namespace thinker {
             spl_autoload_register(function ($class) {
                 $dirs = array("modules", "plugins");
                 foreach ($dirs as $dir) {
+                    $class = str_replace("\\",DS,$class);
                     $file = self::$projectPath . DS . $dir . DS . $class . ".php";
                     if (file_exists($file)) {
                         include_once $file;
@@ -93,7 +94,7 @@ namespace thinker {
             $pathinfo = join("/", $uri);
             $module = array_shift($uri);
             $module = empty($module) ? "home" : $module;
-            $moduleConst = $module . "\\" . $module . "Const";
+            $moduleConst = $module . "\\" . ucfirst($module) . "Const";
             //路由重写
             $router = self::hook("router");
             if (class_exists($moduleConst)) {
