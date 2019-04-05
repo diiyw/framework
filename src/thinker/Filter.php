@@ -41,6 +41,10 @@ namespace thinker {
         {
             $rules = method_exists($this, $method) ? $this->$method() : [];
             foreach ($rules as $name => $rule) {
+                if (empty($rule) && isset($data[$name])) {
+                    $this->data[$name] = $data[$name];
+                    continue;
+                }
                 foreach ($rule as $method => $params) {
                     $value = $data[$name] ?? "";
                     switch ($method) {

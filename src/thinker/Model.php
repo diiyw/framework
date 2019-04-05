@@ -160,6 +160,7 @@ namespace thinker {
          */
         public function change($data)
         {
+            unset($data[$this->_primaryKey]);
             $result = $this->update($this->table, $data, $this->_where);
             if (empty($this->_where)) {
                 return Errors::set("Not allow to update all data", "-1");
@@ -212,6 +213,30 @@ namespace thinker {
                 $this->table = strtolower($this->table);
             }
             return $this->table;
+        }
+
+
+        /**
+         * 映射数据
+         * @param $data
+         */
+        public function map($data)
+        {
+            foreach ($data as $key => $value) {
+                $name = $this->convertUnderline($key);
+                if (property_exists($this, $name)) {
+                    $this->$name = $value;
+                }
+            }
+        }
+
+        // 下划线变量转驼峰命名
+        private function convertUnderline($str)
+        {
+            $str = preg_replace_callback('/([-_]+([a-z]{1}))/i', function ($matches) {
+                return strtoupper($matches[2]);
+            }, $str);
+            return $str;
         }
     }
 }
