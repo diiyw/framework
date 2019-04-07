@@ -178,6 +178,7 @@ CONTROLLER;
         foreach ($tables as $table) {
             $modelPath = explode("_", $table);
             $name = ucfirst(array_pop($modelPath));
+            $lowerName = strtolower($name);
             $modelName = $name . "Model";
             $modelPath = array_splice($modelPath, 1);
             // namespace
@@ -207,6 +208,29 @@ class {$name}Lib
     {
         \$this->model = new $modelName();
     }
+    
+    /**
+     * 添加
+     * @param \$formData
+     * @return bool|int|mixed|string
+     */
+    public function add$name(\$formData)
+    {
+        return \$this->model->add$name(\$formData);
+    }
+    
+    /**
+     * 更新
+     * @param \$formData
+     * @param \${$lowerName}Id
+     * @return bool|\PDOStatement
+     */
+    public function update$name(\$formData, \${$lowerName}Id)
+    {
+        return \$this->model->where(array(
+            "{$lowerName}_id" => \${$lowerName}Id,
+        ))->change(\$formData);
+    }
 }
 LIB;
             file_put_contents($libraryPath . "/" . $name . "Lib.php", $moduleLibrary);
@@ -231,6 +255,7 @@ LIB;
         foreach ($tables as $table) {
             $modelPath = explode("_", $table);
             $name = ucfirst(array_pop($modelPath));
+            $lowerName = strtolower($name);
             $modelName = $name . "Model";
             $modelPath = array_splice($modelPath, 1);
             // namespace
@@ -362,6 +387,19 @@ class $modelName extends Model
         return [
 $modelFields
         ];
+    }
+    
+    /**
+     * 添加
+     * @param \$formData
+     * @return bool|int|mixed|string
+     */
+    public function add$name(\$formData)
+    {
+        \$this->map(\$formData);
+        \$this->{$lowerName}Created = date("Y-m-d H:i:s");
+        \$this->{$lowerName}Updated = date("Y-m-d H:i:s");
+        return \$this->create();
     }
     
     /**

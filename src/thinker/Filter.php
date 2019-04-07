@@ -50,7 +50,7 @@ namespace thinker {
                     switch ($method) {
                         // $params是错误提示信息
                         case self::REQUIRED:
-                            if (empty($value)) {
+                            if ($value === "") {
                                 $this->error = $params;
                                 return;
                             }

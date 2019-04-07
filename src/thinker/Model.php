@@ -59,7 +59,7 @@ namespace thinker {
          */
         public function where($conditions)
         {
-            $this->_where = array_merge($this->_where, $conditions);
+            $this->_where = array_merge($this->getWhere(), $conditions);
             return $this;
         }
 
@@ -68,7 +68,7 @@ namespace thinker {
          */
         public function result($colunms = "*")
         {
-            return $this->select($this->table, $colunms, $this->_where);
+            return $this->select($this->table, $colunms, $this->getWhere());
         }
 
         /**
@@ -78,9 +78,9 @@ namespace thinker {
         {
             $this->_where["LIMIT"] = [($page - 1) * $limit, $limit];
             if ($join) {
-                return $this->select($this->table, $join, $colunms, $this->_where);
+                return $this->select($this->table, $join, $colunms, $this->getWhere());
             }
-            return $this->select($this->table, $colunms, $this->_where);
+            return $this->select($this->table, $colunms, $this->getWhere());
         }
 
         /**
@@ -106,7 +106,7 @@ namespace thinker {
          */
         public function getCount($join = null, $column = null)
         {
-            return parent::count($this->table, $join, $column, $this->_where);
+            return parent::count($this->table, $join, $column, $this->getWhere());
         }
 
         /**
@@ -119,9 +119,9 @@ namespace thinker {
         public function first($columns = "*", $join = [])
         {
             if (empty($join)) {
-                return parent::get($this->table, $columns, $this->_where);
+                return parent::get($this->table, $columns, $this->getWhere());
             }
-            return parent::get($this->table, $join, $columns, $this->_where);
+            return parent::get($this->table, $join, $columns, $this->getWhere());
         }
 
         /**
@@ -132,9 +132,9 @@ namespace thinker {
         public function exist($join = null)
         {
             if ($join) {
-                return parent::has($this->table, $join, $this->_where);
+                return parent::has($this->table, $join, $this->getWhere());
             }
-            return parent::has($this->table, $this->_where);
+            return parent::has($this->table, $this->getWhere());
         }
 
         /**
@@ -143,12 +143,13 @@ namespace thinker {
          */
         public function remove()
         {
-            $result = $this->delete($this->table, $this->_where);
-            if (empty($this->_where)) {
+            $where = $this->getWhere();
+            if (empty($where)) {
                 return Errors::set("Not allow to delete all data", "-1");
             }
-            if ($result->errorCode !== '00000') {
-                return Errors::set($result->errorInfo(), $result->errorCode);
+            $result = $this->delete($this->table, $where);
+            if ($result->errorCode() !== '00000') {
+                return Errors::set($result->errorInfo(), $result->errorCode());
             }
             return true;
         }
@@ -161,10 +162,11 @@ namespace thinker {
         public function change($data)
         {
             unset($data[$this->_primaryKey]);
-            $result = $this->update($this->table, $data, $this->_where);
-            if (empty($this->_where)) {
+            $where = $this->getWhere();
+            if (empty($where)) {
                 return Errors::set("Not allow to update all data", "-1");
             }
+            $result = $this->update($this->table, $data, $where);
             $count = $result->rowCount();
             if ($result->errorCode() !== '00000') {
                 return Errors::set($result->errorInfo(), $result->errorCode());
@@ -182,9 +184,9 @@ namespace thinker {
         public function getList($join = null, $colunms = null, $page = 0, $limit = 10)
         {
             if ($join) {
-                $total = $this->count($this->table, $join, $colunms, $this->_where);
+                $total = $this->count($this->table, $join, "*", $this->getWhere());
             } else {
-                $total = $this->count($this->table, $this->_where);
+                $total = $this->count($this->table, $this->getWhere());
             }
             $return = [
                 "list" => [],
@@ -213,6 +215,18 @@ namespace thinker {
                 $this->table = strtolower($this->table);
             }
             return $this->table;
+        }
+
+
+        /**
+         * 获取where条件
+         * @return array
+         */
+        private function getWhere()
+        {
+            $where = $this->_where;
+            $this->_where = [];
+            return $where;
         }
 
 
