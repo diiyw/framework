@@ -28,6 +28,9 @@ class Create extends Command
             case "model":
                 $this->createNewModel($input, $output);
                 break;
+            case "library":
+                $this->createNewLibrary($input, $output);
+                break;
         }
     }
 
@@ -50,10 +53,45 @@ class Create extends Command
         if (empty($model)) {
             $output->writeln("<error>Model name must specified</error>");
         }
+        $question = new Question('Please enter config name (default:default):', 'default');
+        $conn = $helper->ask($input, $output, $question);
         $dbConfig = $const::DB_CONFIG;
-        $dbConfig["default"]["tables"] = [$model];
+        $dbConfig[$conn]["tables"] = explode(",", $model);
         $this->createModelFiles($module, $dbConfig);
     }
+
+    /**
+     *  重建模型库
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @throws \Exception
+     */
+    public function createNewLibrary(InputInterface $input, OutputInterface $output)
+    {
+        $helper = $this->getHelper('question');
+        // 模块名称
+        $question = new Question('Please enter module name (default:home):', 'home');
+        $module = $helper->ask($input, $output, $question);
+        $const = $module . "\\" . ucfirst($module) . "Const";
+        $constFile = $const . ".php";
+        if (!file_exists($constFile)) {
+            $output->writeln("<error>Database config file not found</error>");
+            return;
+        }
+        require_once $constFile;
+        $question = new Question('Please enter model name (default:""):', '');
+        $tables = $helper->ask($input, $output, $question);
+        if (empty($tables)) {
+            $dbConfig = $const::DB_CONFIG;
+            $tables = $dbConfig[$conn]["tables"];
+        } else {
+            $tables = explode(",", $tables);
+        }
+        $question = new Question('Please enter config name (default:default):', 'default');
+        $conn = $helper->ask($input, $output, $question);
+        $this->createLibraryFiles($module, join(",", $tables));
+    }
+
 
     // 创建
     public function create(InputInterface $input, OutputInterface $output)
@@ -119,6 +157,8 @@ class {$fModule}Const
     );
     
     const ROUTERS = [];
+    
+    const PAGE_LIMIT = 10;
 }
 DB;
         $constClass = $module . "\\" . $fModule . "Const";
@@ -182,33 +222,19 @@ CONTROLLER;
             $modelName = $name . "Model";
             $modelPath = array_splice($modelPath, 1);
             // namespace
-            $namespace = "namespace " . $module . ";\n";
-            $var_namespace = "";
-            if (!empty($modelPath)) {
-                $var_namespace = join("\\", $modelPath);
-                $namespace = "\nnamespace " . $var_namespace . ";\n";
-                $var_namespace .= "\\";
-            }
+            $ns = $this->getNamespace(strtolower($module), $modelPath);
+            $namespace = "namespace " . $ns . ";\n";
             $path = join("/", $modelPath);
             $libraryPath = $module . "/" . $path;
+            $module = ucfirst($module);
             @mkdir($libraryPath, 0777, true);
             $moduleLibrary = <<<LIB
 <?php
 $namespace
+$using
 class {$name}Lib
 {
-
-   /**
-    * 模型
-    * @var $modelName;
-    */
-    private \$model;
-
-    public function __construct()
-    {
-        \$this->model = new $modelName();
-    }
-    
+  
     /**
      * 添加
      * @param \$formData
@@ -216,7 +242,8 @@ class {$name}Lib
      */
     public function add$name(\$formData)
     {
-        return \$this->model->add$name(\$formData);
+        \$model = new {$name}Model();
+        return \$model->insert(\$formData);
     }
     
     /**
@@ -227,12 +254,44 @@ class {$name}Lib
      */
     public function update$name(\$formData, \${$lowerName}Id)
     {
-        return \$this->model->where(array(
+        \$model = new {$name}Model();
+        \$model->where([
             "{$lowerName}_id" => \${$lowerName}Id,
-        ))->change(\$formData);
+        ]);
+        return \$model->update(\$formData);
+    }
+    
+     /**
+     * 获取单条
+     * @param \${$lowerName}Id
+     * @return array|mixed
+     */
+    public function get$name(\${$lowerName}Id)
+    {
+        \$model = new {$name}Model();
+        return \$model->findOne([
+            "{$lowerName}_id" => \${$lowerName}Id,
+        ]);
+    }
+    
+     /**
+     * 获取列表
+     * @param \$formData
+     * @param string \$columns
+     * @return array
+     */
+    public function get{$name}List(\$formData, \$columns = "*")
+    {
+        \$model = new {$name}Model();
+        \$model->setWhere(\$formData);
+        return \$model->findList(\$columns, \$formData["page"], {$module}Const::PAGE_LIMIT);
     }
 }
 LIB;
+            $file = $libraryPath . "/" . $name . "Lib.php";
+            if (file_exists($file)) {
+                rename($file, $file . ".bakup.php");
+            }
             file_put_contents($libraryPath . "/" . $name . "Lib.php", $moduleLibrary);
         }
     }
@@ -259,13 +318,7 @@ LIB;
             $modelName = $name . "Model";
             $modelPath = array_splice($modelPath, 1);
             // namespace
-            $namespace = "namespace " . $module . ";\n";
-            $var_namespace = "";
-            if (!empty($modelPath)) {
-                $var_namespace = join("\\", $modelPath);
-                $namespace = "\nnamespace " . $var_namespace . ";\n";
-                $var_namespace .= "\\";
-            }
+            $namespace = $this->getNamespace($module, $modelPath);
             $path = join("/", $modelPath);
             $modelPath = $module . "/" . $path;
             // 模型目录创建
@@ -273,7 +326,6 @@ LIB;
             $result = $model->query("SHOW FULL COLUMNS FROM $table");
             $columns = $result->fetchAll();
             $properties = "";
-            $modelFields = [];
             $conditions = "";
             if (!empty($columns)) {
                 foreach ($columns as $k => $column) {
@@ -288,142 +340,68 @@ LIB;
      * @var {$column["Type"]}
      * @default {$column["Default"]}
      */\n";
-                    $field = $this->convertUnderline(lcfirst($column["Field"]));
+                    $field = $model->camelize($column["Field"]);
                     $properties .= $comment . "    public $" . $field . ";\n";
-                    $modelFields[] = "            \"{$column["Field"]}\" => \$this->$field,";
                     // 模型库
                     $fieldName = $column["Field"];
-                    $formField = ucfirst($this->convertUnderline(ltrim(str_replace($module, "", $fieldName), "_")));
+                    $formField = $model->uncamelize(str_replace($module, "", $fieldName));
                     if (stripos($column["Type"], "int") !== false) {
-                        $conditions .= "\$b{$formField} = \$formData[\"b_{$formField}\"] ?? [];
-        if (\$b{$formField}) {
-            \$this->where([\"{$fieldName}[<>]\" =>\$b{$formField}]);
-        }
-        \$e$formField = \$formData[\"e_$formField\"] ?? \"\";
-        if (\$e{$formField}) {
-            \$this->where([
-                \"{$fieldName}[=]\" => \$e$formField,
-            ]);
-        }
-        \$mt{$formField} = \$formData[\"mt_$formField\"] ?? \"\";
-        if (\$mt{$formField}) {
-            \$this->where([
-                \"{$fieldName}[>]\" => \$mt{$formField},
-            ]);
-        }
-        \$mq{$formField} = \$formData[\"mq_$formField\"] ?? \"\";
-        if (\$mq{$formField}) {
-            \$this->where([
-                \"{$fieldName}[>=]\" => \$mq{$formField},
-            ]);
-        }
-        \$l{$formField} = \$formData[\"l_$formField\"] ?? \"\";
-        if (\$l{$formField}) {
-            \$this->where([
-                \"{$fieldName}[<]\" =>\$l{$formField},
-            ]);
-        }
-        \$lq{$formField} = \$formData[\"lq_$formField\"] ?? \"\";
-        if (\$lq{$formField}) {
-            \$this->where([
-                \"{$fieldName}[<=]\" =>\$lq{$formField}
-            ]);
-        }
-        ";
+                        $conditions = <<<CONDITION
+            "{$fieldName}[<>]" => \$formData["b_{$formField}"] ?? null,
+            "{$fieldName}[=]" => \$formData["e_{$formField}"] ?? null,
+            "{$fieldName}[>]" => \$formData["mt_{$formField}"] ?? null,
+            "{$fieldName}[>=]" => \$formData["me_{$formField}"] ?? null,
+            "{$fieldName}[<=]" => \$formData["le_{$formField}"] ?? null,
+            "{$fieldName}[<]" => \$formData["lt_{$formField}"] ?? null,
+CONDITION;
                     }
                     if (stripos($column["Type"], "varchar") !== false) {
-                        $conditions .= "\$e$formField = \$formData[\"e_$formField\"] ?? \"\";
-        if (\$e{$formField}) {
-            \$this->where([
-                \"{$fieldName}[=]\" => \$e{$formField},
-            ]);
-        }
-        \$lf$formField = \$formData[\"lf_$formField\"] ?? \"\";
-        if (\$lf{$formField}) {
-            \$this->where([
-                \"{$fieldName}[~]\" => \"%\" . \$lf{$formField},
-            ]);
-        }
-        \$rf$formField = \$formData[\"rf_$formField\"] ?? \"\";
-        if (\$rf{$formField}) {
-            \$this->where([
-                \"{$fieldName}[~]\" => \$rf{$formField}.\"%\",
-            ]);
-        }
-        \$ff$formField = \$formData[\"ff_$formField\"] ?? \"\";
-        if (\$rf{$formField}) {
-            \$this->where([
-                \"{$fieldName}[~]\" => \"%\".\$ff{$formField}.\"%\",
-            ]);
-        }
-        ";
+                        $conditions .= <<<CONDITION
+                        
+            "{$fieldName}[=]" => \$formData["e_{$formField}"] ?? null,
+            "{$fieldName}[?=]" => \$formData["lf_{$formField}"] ?? null,
+            "{$fieldName}[=?]" => \$formData["rf_{$formField}"] ?? null,
+            "{$fieldName}[??]" => \$formData["ff_{$formField}"] ?? null,
+CONDITION;
                     }
                     if ($column["Type"] == "datetime") {
-                        $conditions .= "\$b{$formField} = \$formData[\"b_{$formField}\"] ?? \"\";
-        if (!empty(\$b{$formField}[0]) && !empty(\$b{$formField}[1])) {
-            \$this->where(
-                [\"{$fieldName}[<>]\" => \$b{$formField}
-            ]);
-        }
-        ";
+                        $conditions .= <<<CONDITION
+                        
+            "{$fieldName}[=]" => \$formData["e_{$formField}"] ?? null,
+            "{$fieldName}[<>]" => \$formData["b_{$formField}"] ?? null,
+CONDITION;
                     }
                 }
             }
             $conditions = trim($conditions);
-            $modelFields = join("\n", $modelFields);
             $modelContent = <<<MODEL
 <?php
 $namespace
 use thinker\Model;
-use thinker\Request;
 
 class $modelName extends Model
 {
     $properties
-    protected \$_primaryKey = "$primaryKey";
-    
-    public function toArray()
-    {
-        return [
-$modelFields
-        ];
-    }
-    
-    /**
-     * 添加
-     * @param \$formData
-     * @return bool|int|mixed|string
-     */
-    public function add$name(\$formData)
-    {
-        \$this->map(\$formData);
-        \$this->{$lowerName}Created = date("Y-m-d H:i:s");
-        \$this->{$lowerName}Updated = date("Y-m-d H:i:s");
-        return \$this->create();
-    }
+    protected \$primaryKey = "$primaryKey";
     
     /**
      * 条件构造
      * @param \$formData
      */
-    private function filterParams(\$formData)
+    public function setWhere(\$formData)
     {
-        $conditions
+        \$this->where([
+            $conditions
+        ]);
     }
 }
-
 MODEL;
-            file_put_contents($modelPath . "/" . $modelName . ".php", $modelContent);
+            $file = $modelPath . "/" . $modelName . ".php";
+            if (file_exists($file)) {
+                rename($file, $file . ".bakup.php");
+            }
+            file_put_contents($file, $modelContent);
         }
-    }
-
-    // 下划线变量转驼峰命名
-    private function convertUnderline($str)
-    {
-        $str = preg_replace_callback('/([-_]+([a-z]{1}))/i', function ($matches) {
-            return strtoupper($matches[2]);
-        }, $str);
-        return $str;
     }
 
     /**
@@ -462,5 +440,16 @@ class IndexFilter extends Filter
 }
 FILTER;
         file_put_contents($module . "/controller/IndexFilter.php", $filter);
+    }
+
+    private function getNamespace($module, $modelPath)
+    {
+        $namespace = $module;
+        $var_namespace = "";
+        if (!empty($modelPath)) {
+            $var_namespace = join("\\", $modelPath);
+            $namespace .= "\\" . $var_namespace;
+        }
+        return $namespace;
     }
 }
