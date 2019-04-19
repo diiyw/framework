@@ -269,9 +269,10 @@ class {$name}Lib
     public function get$name(\${$lowerName}Id)
     {
         \$model = new {$name}Model();
-        return \$model->findOne([
+        \$model->where([
             "{$lowerName}_id" => \${$lowerName}Id,
         ]);
+        return \$model->findOne();
     }
     
      /**
@@ -284,7 +285,7 @@ class {$name}Lib
     {
         \$model = new {$name}Model();
         \$model->setWhere(\$formData);
-        return \$model->findList(\$columns, \$formData["page"], {$module}Const::PAGE_LIMIT);
+        return \$model->findList(\$columns, null, \$formData["page"], {$module}Const::PAGE_LIMIT);
     }
 }
 LIB;
@@ -318,7 +319,7 @@ LIB;
             $modelName = $name . "Model";
             $modelPath = array_splice($modelPath, 1);
             // namespace
-            $namespace = $this->getNamespace($module, $modelPath);
+            $namespace = $this->getNamespace($module, $modelPath) . ";\n";
             $path = join("/", $modelPath);
             $modelPath = $module . "/" . $path;
             // 模型目录创建
@@ -346,29 +347,30 @@ LIB;
                     $fieldName = $column["Field"];
                     $formField = $model->uncamelize(str_replace($module, "", $fieldName));
                     if (stripos($column["Type"], "int") !== false) {
-                        $conditions = <<<CONDITION
-            "{$fieldName}[<>]" => \$formData["b_{$formField}"] ?? null,
-            "{$fieldName}[=]" => \$formData["e_{$formField}"] ?? null,
-            "{$fieldName}[>]" => \$formData["mt_{$formField}"] ?? null,
-            "{$fieldName}[>=]" => \$formData["me_{$formField}"] ?? null,
-            "{$fieldName}[<=]" => \$formData["le_{$formField}"] ?? null,
-            "{$fieldName}[<]" => \$formData["lt_{$formField}"] ?? null,
+                        $conditions .= <<<CONDITION
+                        
+            "{$fieldName}[<>]" => empty(\$formData["b_{$formField}"]) ? null : \$formData["b_{$formField}"],
+            "{$fieldName}[=]" => empty(\$formData["e_{$formField}"]) ? null : \$formData["e_{$formField}"],
+            "{$fieldName}[>]" => empty(\$formData["mt_{$formField}"]) ? null : \$formData["mt_{$formField}"],
+            "{$fieldName}[>=]" => empty(\$formData["me_{$formField}"]) ? null : \$formData["me_{$formField}"],
+            "{$fieldName}[<=]" => empty(\$formData["le_{$formField}"]) ? null : \$formData["le_{$formField}"],
+            "{$fieldName}[<]" => empty(\$formData["lt_{$formField}"]) ? null : \$formData["lt_{$formField}"],
 CONDITION;
                     }
                     if (stripos($column["Type"], "varchar") !== false) {
                         $conditions .= <<<CONDITION
                         
-            "{$fieldName}[=]" => \$formData["e_{$formField}"] ?? null,
-            "{$fieldName}[?=]" => \$formData["lf_{$formField}"] ?? null,
-            "{$fieldName}[=?]" => \$formData["rf_{$formField}"] ?? null,
-            "{$fieldName}[??]" => \$formData["ff_{$formField}"] ?? null,
+            "{$fieldName}[=]" => empty(\$formData["e_{$formField}"]) ? null : \$formData["e_{$formField}"],
+            "{$fieldName}[?=]" => empty(\$formData["lf_{$formField}"]) ? null : \$formData["lf_{$formField}"],
+            "{$fieldName}[=?]" => empty(\$formData["rf_{$formField}"]) ? null : \$formData["rf_{$formField}"],
+            "{$fieldName}[??]" => empty(\$formData["ff_{$formField}"]) ? null : \$formData["ff_{$formField}"],
 CONDITION;
                     }
                     if ($column["Type"] == "datetime") {
                         $conditions .= <<<CONDITION
                         
-            "{$fieldName}[=]" => \$formData["e_{$formField}"] ?? null,
-            "{$fieldName}[<>]" => \$formData["b_{$formField}"] ?? null,
+            "{$fieldName}[=]" => empty(\$formData["e_{$formField}"]) ? null : \$formData["e_{$formField}"],
+            "{$fieldName}[<>]" => empty(\$formData["b_{$formField}"]) ? null : \$formData["b_{$formField}"],
 CONDITION;
                     }
                 }
@@ -376,7 +378,7 @@ CONDITION;
             $conditions = trim($conditions);
             $modelContent = <<<MODEL
 <?php
-$namespace
+namespace $namespace
 use thinker\Model;
 
 class $modelName extends Model
