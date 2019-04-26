@@ -55,6 +55,11 @@ class Model
     protected $__binding = [];
 
     /**
+     * @var \PDOStatement
+     */
+    protected $_lastStmt;
+
+    /**
      * 新建模型
      * @param array $options
      * @throws Exception
@@ -204,6 +209,7 @@ class Model
     {
         $this->join($join);
         $count = $this->select("COUNT(1)");
+        $this->__join = [];
         if (empty($count)) {
             return 0;
         }
@@ -423,6 +429,7 @@ class Model
             Errors::set($queryStmt->errorInfo()[2], $queryStmt->errorCode());
             return $queryStmt;
         }
+        $this->_lastStmt = $queryStmt;
         return $queryStmt;
     }
 
@@ -514,5 +521,13 @@ class Model
         } catch (\Exception $e) {
             $this->__pdo->rollBack();
         }
+    }
+
+    /**
+     * sql执行错误信息
+     */
+    public function errorInfo()
+    {
+        return $this->_lastStmt ? $this->_lastStmt->errorInfo() : [];
     }
 }

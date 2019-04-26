@@ -64,7 +64,7 @@ namespace thinker {
             spl_autoload_register(function ($class) {
                 $dirs = array("modules", "plugins");
                 foreach ($dirs as $dir) {
-                    $class = str_replace("\\",DS,$class);
+                    $class = str_replace("\\", DS, $class);
                     $file = self::$projectPath . DS . $dir . DS . $class . ".php";
                     if (file_exists($file)) {
                         include_once $file;
@@ -72,9 +72,9 @@ namespace thinker {
                     }
                 }
             });
+            self::parseUri();
             self::loadPlugins(self::$pluginPath);
             self::hook("beforeDispatch");
-            self::parseUri();
             // 执行控制器
             $class = self::$module . "\\controller\\" . ucfirst(self::$controller);
             (new $class())->resolve();
@@ -171,7 +171,8 @@ namespace thinker {
                     if (is_file($file)) {
                         $pathInfo = pathinfo($file);
                         if ($pathInfo["extension"] == "php") {
-                            $entry = $name . "\\" . $pathInfo["filename"];
+                            $entry = $pathInfo["filename"];
+                            require_once $file;
                             self::$plugins[$entry] = new $entry;
                         }
                         continue;
@@ -214,23 +215,12 @@ namespace thinker {
          */
         public static function enablePlugin($plugin, $switcher = true)
         {
-            try {
-                $path = self::$pluginPath . "/$plugin/";
-                $lock = $path . "/install.lock";
-                $entry = "\\$plugin\\Action";
-                if ($switcher) {
-                    if (is_dir($path . "template")) {
-                        self::rcopy($path, self::$rootPath . DS . "template/" . $plugin);
-                    }
-                    file_put_contents($lock, time());
-                    return (new $entry)->__install();
-                }
-                unlink($lock);
-                self::rrmdir(self::$rootPath . DS . "template/" . $plugin);
-                return (new $entry)->__uninstall();
-            } catch (\Exception $e) {
-                return $e->getMessage();
+            $lock = self::$pluginPath . DS . $plugin . DS . "install.lock";
+            if ($switcher) {
+                @file_put_contents($lock, time());
+                return;
             }
+            @unlink($lock);
         }
 
         /**
@@ -238,14 +228,14 @@ namespace thinker {
          * @param $src
          * @param $dst
          */
-        public function rcopy($src, $dst)
+        public static function rcopy($src, $dst)
         {
-            if (file_exists($dst)) $this->rrmdir($dst);
+            if (file_exists($dst)) self::rrmdir($dst);
             if (is_dir($src)) {
                 mkdir($dst);
                 $files = scandir($src);
                 foreach ($files as $file)
-                    if ($file != "." && $file != "..") $this->rcopy("$src/$file", "$dst/$file");
+                    if ($file != "." && $file != "..") self::rcopy("$src/$file", "$dst/$file");
             } else if (file_exists($src)) copy($src, $dst);
         }
 
@@ -253,14 +243,20 @@ namespace thinker {
          * 递归删除目录
          * @param $dir
          */
-        public function rrmdir($dir)
+        public static function rrmdir($dir)
         {
             if (is_dir($dir)) {
                 $files = scandir($dir);
                 foreach ($files as $file)
-                    if ($file != "." && $file != "..") $this->rrmdir("$dir/$file");
+                    if ($file != "." && $file != "..") self::rrmdir("$dir/$file");
                 rmdir($dir);
             } else if (file_exists($dir)) unlink($dir);
+        }
+
+        public static function uninstallPlugin($plugin)
+        {
+            self::enablePlugin($plugin, false);
+            self::rrmdir(self::$pluginPath . DS . $plugin);
         }
     }
 }

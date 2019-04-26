@@ -4,8 +4,6 @@ namespace thinker {
 
     class Http
     {
-
-
         /**
          * 请求IP
          * @var string

@@ -31,6 +31,7 @@ namespace thinker {
         {
             // 初始化
             $this->http = new Http();
+            $this->http->sessionStart();
             $this->view = new View();
         }
 
@@ -47,33 +48,21 @@ namespace thinker {
                         case "CLI_GET":
                         case "GET":
                             $filter = new $filter($this->http->get(), "get");
-                            if ($filter->error()) {
-                                $this->error(1000, $filter->error());
-                            }
                             $this->formData = $filter->data;
                             $resp = $this->get();
                             break;
                         case "POST":
                             $filter = new $filter($this->http->post(), "post");
-                            if ($filter->error()) {
-                                $this->error(1000, $filter->error());
-                            }
                             $this->formData = $filter->data;
                             $resp = $this->post();
                             break;
                         case "PUT":
                             $filter = new $filter($this->http->input(), "put");
-                            if ($filter->error()) {
-                                $this->error(1000, $filter->error());
-                            }
                             $this->formData = $filter->data;
                             $resp = $this->put();
                             break;
                         case "DELETE":
                             $filter = new $filter($this->http->input(), "delete");
-                            if ($filter->error()) {
-                                $this->error(1000, $filter->error());
-                            }
                             $this->formData = $filter->data;
                             $resp = $this->delete();
                             break;
@@ -86,10 +75,7 @@ namespace thinker {
                     }
                     $this->success($resp);
                 }
-                $filter = new $filter($this->http->get(), "view");
-                if ($filter->error()) {
-                    throw new \Exception($filter->error(), 1000);
-                }
+                $filter = new $filter($this->http->{$this->http->method}(), "view");
                 $this->formData = $filter->data;
                 $this->view();
             } catch (\Exception $e) {
