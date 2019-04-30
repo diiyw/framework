@@ -193,10 +193,11 @@ class Model
      * @param int $limit
      * @return array
      */
-    public function findLast($columns = "*", $join = null, $page = 0, $limit = 10): array
+    public function findLast($columns = "*", $join = null, $page = 1, $limit = 10): array
     {
-        $this->limit([($page - 1) * $limit, $limit]);
         $this->join($join);
+        $this->orderBy([$this->primaryKey . " desc"]);
+        $this->limit([($page - 1) * $limit, $limit]);
         return $this->select($columns);
     }
 
@@ -224,8 +225,8 @@ class Model
      */
     public function findOne($columns = "*", $join = null): array
     {
-        $this->limit(1);
         $this->join($join);
+        $this->limit(1);
         $result = $this->select($columns);
         if (!empty($result)) {
             return $result[0];

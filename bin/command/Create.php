@@ -231,7 +231,7 @@ CONTROLLER;
             $moduleLibrary = <<<LIB
 <?php
 $namespace
-$using
+
 class {$name}Lib
 {
   
